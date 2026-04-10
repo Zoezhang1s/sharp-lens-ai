@@ -13,7 +13,7 @@ interface Message {
 }
 
 const Critique = () => {
-  const { t, language } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
