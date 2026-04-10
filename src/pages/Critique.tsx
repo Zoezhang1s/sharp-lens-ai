@@ -79,7 +79,7 @@ const Critique = () => {
     try {
       await streamChat({
         messages: buildApiMessages(currentMessages),
-        language: language === "zh" ? "zh" : "en",
+        language: lang === "zh" ? "zh" : "en",
         onDelta: upsertAssistant,
         onDone: () => setIsLoading(false),
         onError: (err) => {
@@ -119,7 +119,7 @@ const Critique = () => {
     try {
       await streamChat({
         messages: buildApiMessages(newMessages),
-        language: language === "zh" ? "zh" : "en",
+        language: lang === "zh" ? "zh" : "en",
         onDelta: upsertAssistant,
         onDone: () => setIsLoading(false),
         onError: (err) => {
