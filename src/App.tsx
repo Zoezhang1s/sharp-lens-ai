@@ -8,6 +8,7 @@ import AppHeader from "@/components/AppHeader";
 import Index from "./pages/Index";
 import Critique from "./pages/Critique";
 import Styles from "./pages/Styles";
+import StyleDetail from "./pages/StyleDetail";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/critique" element={<Critique />} />
             <Route path="/styles" element={<Styles />} />
+            <Route path="/styles/:id" element={<StyleDetail />} />
             <Route path="/history" element={<History />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

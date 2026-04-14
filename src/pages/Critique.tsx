@@ -1,19 +1,35 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X, Sparkles } from "lucide-react";
+import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X, Sparkles, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
+import { STYLE_DATA, STYLE_NAME_MAP } from "@/data/styleData";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   imageData?: string;
   generatedImage?: string;
+  detectedStyleId?: string;
 }
 
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
+
+const detectStyleFromText = (text: string): string | undefined => {
+  // Check all style names (Chinese and English)
+  for (const style of STYLE_DATA) {
+    if (text.includes(style.nameZh) || text.toLowerCase().includes(style.nameEn.toLowerCase())) {
+      return style.id;
+    }
+  }
+  // Check partial names
+  for (const [name, id] of Object.entries(STYLE_NAME_MAP)) {
+    if (text.includes(name)) return id;
+  }
+  return undefined;
+};
 
 const Critique = () => {
   const { t, lang } = useLanguage();
@@ -26,7 +42,6 @@ const Critique = () => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const critiqueCountRef = useRef(0);
 
   useEffect(() => {
     const img = sessionStorage.getItem("critique-image");
@@ -39,8 +54,7 @@ const Critique = () => {
         imageData: img,
       };
       setMessages([userMsg]);
-      critiqueCountRef.current = 1;
-      triggerCritique([userMsg], img, true);
+      triggerCritique([userMsg], true);
     } else {
       navigate("/");
     }
@@ -83,7 +97,6 @@ const Critique = () => {
       if (!resp.ok) {
         const data = await resp.json().catch(() => ({ error: "Unknown error" }));
         console.error("Image gen error:", data.error);
-        toast.error(t("生图失败，请稍后重试", "Image generation failed, please try again"));
         return;
       }
 
@@ -92,8 +105,8 @@ const Critique = () => {
         const imgMsg: Message = {
           role: "assistant",
           content: t(
-            "## 🎨 AI优化参考图\n\n根据以上点评，我生成了一张优化后的参考图片。这就是按照建议拍摄后的理想效果：\n\n> 💡 *注意：这是AI生成的参考图，用于展示优化方向，实际拍摄时请根据现场条件灵活调整。*",
-            "## 🎨 AI Optimized Reference\n\nBased on the critique above, I generated an optimized reference image. This is what the ideal result would look like:\n\n> 💡 *Note: This is an AI-generated reference to show the optimization direction. Adjust based on actual conditions when shooting.*"
+            "## 🎨 AI优化参考图\n\n根据以上点评生成的优化参考，展示理想拍摄效果：\n\n> 💡 *AI参考图，实际拍摄请灵活调整*",
+            "## 🎨 AI Optimized Reference\n\nOptimized reference based on the critique above:\n\n> 💡 *AI reference — adjust based on actual conditions*"
           ),
           generatedImage: data.imageUrl,
         };
@@ -101,26 +114,26 @@ const Critique = () => {
       }
     } catch (e) {
       console.error("Image gen error:", e);
-      toast.error(t("生图服务出错", "Image generation service error"));
     } finally {
       setIsGeneratingImage(false);
     }
   };
 
-  const triggerCritique = async (currentMessages: Message[], _img: string, shouldGenerateImage: boolean) => {
+  const triggerCritique = async (currentMessages: Message[], shouldGenerateImage: boolean) => {
     setIsLoading(true);
     let assistantSoFar = "";
 
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
+      const detectedStyleId = detectStyleFromText(assistantSoFar);
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
+        if (last?.role === "assistant" && !last.generatedImage) {
           return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
+            i === prev.length - 1 ? { ...m, content: assistantSoFar, detectedStyleId } : m
           );
         }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
+        return [...prev, { role: "assistant", content: assistantSoFar, detectedStyleId }];
       });
     };
 
@@ -160,7 +173,7 @@ const Critique = () => {
       assistantSoFar += chunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
+        if (last?.role === "assistant" && !last.generatedImage) {
           return prev.map((m, i) =>
             i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
           );
@@ -201,10 +214,31 @@ const Critique = () => {
       };
       const newMessages = [...messages, userMsg];
       setMessages(newMessages);
-      critiqueCountRef.current += 1;
-      triggerCritique(newMessages, img, true);
+      triggerCritique(newMessages, true);
     };
     reader.readAsDataURL(file);
+  };
+
+  const renderMarkdownLine = (line: string, j: number) => {
+    if (line.startsWith("## ")) return <h2 key={j} className="text-base font-bold mt-4 mb-2 text-primary">{line.replace("## ", "")}</h2>;
+    if (line.startsWith("### ")) return <h3 key={j} className="text-sm font-semibold mt-3 mb-1">{line.replace("### ", "")}</h3>;
+    if (line.startsWith("---")) return <hr key={j} className="my-3 border-border/30" />;
+    if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
+    if (line.trim() === "") return <br key={j} />;
+
+    // Render inline bold
+    const parts = line.split(/\*\*(.*?)\*\*/g);
+    return (
+      <p key={j} className="text-sm my-0.5">
+        {parts.map((part, k) =>
+          k % 2 === 1 ? (
+            <strong key={k} className="text-primary font-semibold">{part}</strong>
+          ) : (
+            <span key={k}>{part}</span>
+          )
+        )}
+      </p>
+    );
   };
 
   const renderMessageContent = (msg: Message) => (
@@ -231,21 +265,20 @@ const Critique = () => {
           </div>
         </div>
       )}
-      <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-invert prose-sm max-w-none [&_h2]:text-primary [&_h3]:text-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
-        {msg.content.split("\n").map((line, j) => {
-          if (line.startsWith("## ")) return <h2 key={j} className="text-base font-bold mt-4 mb-2 text-primary">{line.replace("## ", "")}</h2>;
-          if (line.startsWith("### ")) return <h3 key={j} className="text-sm font-semibold mt-3 mb-1">{line.replace("### ", "")}</h3>;
-          if (line.startsWith("---")) return <hr key={j} className="my-3 border-border/30" />;
-          if (line.startsWith("- **")) {
-            const parts = line.replace("- **", "").split("**:");
-            return <p key={j} className="text-sm my-0.5"><strong className="text-foreground">{parts[0]}</strong>:{parts[1]}</p>;
-          }
-          if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
-          if (line.startsWith("1. ") || line.startsWith("2. ") || line.startsWith("3. ")) return <p key={j} className="text-sm ml-2 my-0.5">{line}</p>;
-          if (line.trim() === "") return <br key={j} />;
-          return <p key={j} className="text-sm my-0.5">{line.replace(/\*\*(.*?)\*\*/g, (_, m) => m)}</p>;
-        })}
+      <div className="text-sm leading-relaxed whitespace-pre-wrap">
+        {msg.content.split("\n").map((line, j) => renderMarkdownLine(line, j))}
       </div>
+      {msg.detectedStyleId && (
+        <Link
+          to={`/styles/${msg.detectedStyleId}`}
+          className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group"
+        >
+          <BookOpen className="w-4 h-4 text-primary" />
+          <span className="text-xs text-primary font-medium">
+            {t("查看该风格的拍摄攻略 →", "View shooting guide for this style →")}
+          </span>
+        </Link>
+      )}
     </>
   );
 
@@ -293,7 +326,7 @@ const Critique = () => {
             <div className="glass-card px-4 py-3 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                {t("正在生成优化参考图...", "Generating optimized reference image...")}
+                {t("正在生成优化参考图...", "Generating optimized reference...")}
               </span>
             </div>
           </div>
