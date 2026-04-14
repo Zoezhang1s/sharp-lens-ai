@@ -1,7 +1,8 @@
 import { useCallback, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Upload, Camera, Aperture, Sparkles, ArrowRight } from "lucide-react";
+import { Upload, Aperture, Sparkles, ArrowRight } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -53,9 +54,7 @@ const Index = () => {
       <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg w-full animate-fade-up">
         {/* Logo area */}
         <div className="flex flex-col items-center gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center animate-pulse-glow">
-            <Camera className="w-8 h-8 text-primary" />
-          </div>
+          <img src={logoImg} alt="Logo" className="w-20 h-20 object-contain" width={512} height={512} />
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-gradient-gold">
             {t("你拍的啥", "WhatDidYouShoot")}
           </h1>
