@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X } from "lucide-react";
+import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
@@ -10,7 +10,10 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   imageData?: string;
+  generatedImage?: string;
 }
+
+const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 
 const Critique = () => {
   const { t, lang } = useLanguage();
@@ -18,10 +21,12 @@ const Critique = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const critiqueCountRef = useRef(0);
 
   useEffect(() => {
     const img = sessionStorage.getItem("critique-image");
@@ -34,7 +39,8 @@ const Critique = () => {
         imageData: img,
       };
       setMessages([userMsg]);
-      triggerCritique([userMsg], img);
+      critiqueCountRef.current = 1;
+      triggerCritique([userMsg], img, true);
     } else {
       navigate("/");
     }
@@ -59,7 +65,49 @@ const Critique = () => {
     });
   };
 
-  const triggerCritique = async (currentMessages: Message[], _img: string) => {
+  const generateOptimizedImage = async (critiqueText: string) => {
+    setIsGeneratingImage(true);
+    try {
+      const resp = await fetch(GENERATE_IMAGE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          prompt: critiqueText,
+          language: lang === "zh" ? "zh" : "en",
+        }),
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Image gen error:", data.error);
+        toast.error(t("生图失败，请稍后重试", "Image generation failed, please try again"));
+        return;
+      }
+
+      const data = await resp.json();
+      if (data.imageUrl) {
+        const imgMsg: Message = {
+          role: "assistant",
+          content: t(
+            "## 🎨 AI优化参考图\n\n根据以上点评，我生成了一张优化后的参考图片。这就是按照建议拍摄后的理想效果：\n\n> 💡 *注意：这是AI生成的参考图，用于展示优化方向，实际拍摄时请根据现场条件灵活调整。*",
+            "## 🎨 AI Optimized Reference\n\nBased on the critique above, I generated an optimized reference image. This is what the ideal result would look like:\n\n> 💡 *Note: This is an AI-generated reference to show the optimization direction. Adjust based on actual conditions when shooting.*"
+          ),
+          generatedImage: data.imageUrl,
+        };
+        setMessages((prev) => [...prev, imgMsg]);
+      }
+    } catch (e) {
+      console.error("Image gen error:", e);
+      toast.error(t("生图服务出错", "Image generation service error"));
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const triggerCritique = async (currentMessages: Message[], _img: string, shouldGenerateImage: boolean) => {
     setIsLoading(true);
     let assistantSoFar = "";
 
@@ -81,7 +129,12 @@ const Critique = () => {
         messages: buildApiMessages(currentMessages),
         language: lang === "zh" ? "zh" : "en",
         onDelta: upsertAssistant,
-        onDone: () => setIsLoading(false),
+        onDone: () => {
+          setIsLoading(false);
+          if (shouldGenerateImage && assistantSoFar) {
+            generateOptimizedImage(assistantSoFar);
+          }
+        },
         onError: (err) => {
           toast.error(err);
           setIsLoading(false);
@@ -148,10 +201,53 @@ const Critique = () => {
       };
       const newMessages = [...messages, userMsg];
       setMessages(newMessages);
-      triggerCritique(newMessages, img);
+      critiqueCountRef.current += 1;
+      triggerCritique(newMessages, img, true);
     };
     reader.readAsDataURL(file);
   };
+
+  const renderMessageContent = (msg: Message) => (
+    <>
+      {msg.imageData && (
+        <div className="relative mb-3 group cursor-pointer" onClick={() => setZoomedImage(msg.imageData!)}>
+          <img src={msg.imageData} alt="Uploaded" className="rounded-lg max-h-60 object-cover w-full" />
+          <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+            <ZoomIn className="w-6 h-6 text-foreground" />
+          </div>
+        </div>
+      )}
+      {msg.generatedImage && (
+        <div className="relative mb-3 group cursor-pointer" onClick={() => setZoomedImage(msg.generatedImage!)}>
+          <div className="relative">
+            <img src={msg.generatedImage} alt="AI Generated" className="rounded-lg max-h-80 object-cover w-full border border-primary/30" />
+            <div className="absolute top-2 left-2 bg-primary/80 text-primary-foreground text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              AI
+            </div>
+          </div>
+          <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+            <ZoomIn className="w-6 h-6 text-foreground" />
+          </div>
+        </div>
+      )}
+      <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-invert prose-sm max-w-none [&_h2]:text-primary [&_h3]:text-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
+        {msg.content.split("\n").map((line, j) => {
+          if (line.startsWith("## ")) return <h2 key={j} className="text-base font-bold mt-4 mb-2 text-primary">{line.replace("## ", "")}</h2>;
+          if (line.startsWith("### ")) return <h3 key={j} className="text-sm font-semibold mt-3 mb-1">{line.replace("### ", "")}</h3>;
+          if (line.startsWith("---")) return <hr key={j} className="my-3 border-border/30" />;
+          if (line.startsWith("- **")) {
+            const parts = line.replace("- **", "").split("**:");
+            return <p key={j} className="text-sm my-0.5"><strong className="text-foreground">{parts[0]}</strong>:{parts[1]}</p>;
+          }
+          if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
+          if (line.startsWith("1. ") || line.startsWith("2. ") || line.startsWith("3. ")) return <p key={j} className="text-sm ml-2 my-0.5">{line}</p>;
+          if (line.trim() === "") return <br key={j} />;
+          return <p key={j} className="text-sm my-0.5">{line.replace(/\*\*(.*?)\*\*/g, (_, m) => m)}</p>;
+        })}
+      </div>
+    </>
+  );
 
   return (
     <div className="min-h-screen pt-14 flex flex-col">
@@ -178,29 +274,7 @@ const Critique = () => {
                   : "glass-card text-foreground"
               }`}
             >
-              {msg.imageData && (
-                <div className="relative mb-3 group cursor-pointer" onClick={() => setZoomedImage(msg.imageData!)}>
-                  <img src={msg.imageData} alt="Uploaded" className="rounded-lg max-h-60 object-cover w-full" />
-                  <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                    <ZoomIn className="w-6 h-6 text-foreground" />
-                  </div>
-                </div>
-              )}
-              <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-invert prose-sm max-w-none [&_h2]:text-primary [&_h3]:text-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
-                {msg.content.split("\n").map((line, j) => {
-                  if (line.startsWith("## ")) return <h2 key={j} className="text-base font-bold mt-4 mb-2 text-primary">{line.replace("## ", "")}</h2>;
-                  if (line.startsWith("### ")) return <h3 key={j} className="text-sm font-semibold mt-3 mb-1">{line.replace("### ", "")}</h3>;
-                  if (line.startsWith("---")) return <hr key={j} className="my-3 border-border/30" />;
-                  if (line.startsWith("- **")) {
-                    const parts = line.replace("- **", "").split("**:");
-                    return <p key={j} className="text-sm my-0.5"><strong className="text-foreground">{parts[0]}</strong>:{parts[1]}</p>;
-                  }
-                  if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
-                  if (line.startsWith("1. ") || line.startsWith("2. ") || line.startsWith("3. ")) return <p key={j} className="text-sm ml-2 my-0.5">{line}</p>;
-                  if (line.trim() === "") return <br key={j} />;
-                  return <p key={j} className="text-sm my-0.5">{line.replace(/\*\*(.*?)\*\*/g, (_, m) => m)}</p>;
-                })}
-              </div>
+              {renderMessageContent(msg)}
             </div>
           </div>
         ))}
@@ -210,6 +284,16 @@ const Critique = () => {
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
               <span className="text-sm text-muted-foreground">
                 {t("正在审判中...", "Judging your photo...")}
+              </span>
+            </div>
+          </div>
+        )}
+        {isGeneratingImage && (
+          <div className="flex justify-start animate-fade-up">
+            <div className="glass-card px-4 py-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-sm text-muted-foreground">
+                {t("正在生成优化参考图...", "Generating optimized reference image...")}
               </span>
             </div>
           </div>
