@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ArrowLeft, ExternalLink, Camera, Palette, User, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,22 @@ const StyleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const style = STYLE_DATA.find((s) => s.id === id);
+  const fromCritique = (location.state as any)?.fromCritique;
+  const historyId = (location.state as any)?.historyId;
+
+  const handleBack = () => {
+    if (fromCritique && historyId) {
+      navigate(`/critique?history=${historyId}`);
+    } else if (fromCritique) {
+      navigate(-1);
+    } else {
+      navigate("/styles");
+    }
+  };
 
   if (!style) {
     return (
@@ -71,7 +84,7 @@ const StyleDetail = () => {
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="py-6 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/styles")}>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
@@ -91,12 +104,14 @@ const StyleDetail = () => {
             🎨 {t("风格参考图", "Style Reference")}
           </h3>
           <div className="relative" onTouchStart={handleSwipeStart}>
-            <img
-              src={images[currentImageIndex]}
-              alt={`${style.nameEn} reference ${currentImageIndex + 1}`}
-              className="rounded-lg w-full aspect-[4/3] object-cover transition-opacity duration-300"
-              loading="lazy"
-            />
+            <div className="bg-secondary/30 rounded-lg flex items-center justify-center overflow-hidden">
+              <img
+                src={images[currentImageIndex]}
+                alt={`${style.nameEn} reference ${currentImageIndex + 1}`}
+                className="rounded-lg max-h-[70vh] w-auto max-w-full object-contain transition-opacity duration-300"
+                loading="lazy"
+              />
+            </div>
             {/* Navigation arrows */}
             <button
               onClick={prevImage}
