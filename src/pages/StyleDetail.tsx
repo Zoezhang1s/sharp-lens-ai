@@ -1,51 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, ExternalLink, Camera, Palette, User, Settings, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Camera, Palette, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { STYLE_DATA } from "@/data/styleData";
-import { useState, useEffect } from "react";
 
 const StyleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
 
   const style = STYLE_DATA.find((s) => s.id === id);
-
-  useEffect(() => {
-    if (!style) return;
-    // Generate a reference image using AI
-    const generateRef = async () => {
-      setImageLoading(true);
-      try {
-        const resp = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              prompt: `生成一张${style.nameZh}风格的人像摄影参考图。${lang === "zh" ? style.descZh : style.descEn}。要求：高质量人像照片，展示该风格的典型特征，包括光线、色调、构图、氛围。`,
-              language: lang === "zh" ? "zh" : "en",
-            }),
-          }
-        );
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.imageUrl) setReferenceImage(data.imageUrl);
-        }
-      } catch (e) {
-        console.error("Failed to generate reference image:", e);
-      } finally {
-        setImageLoading(false);
-      }
-    };
-    generateRef();
-  }, [style?.id]);
 
   if (!style) {
     return (
@@ -106,20 +70,15 @@ const StyleDetail = () => {
           <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
             🎨 {t("风格参考图", "Style Reference")}
           </h3>
-          {imageLoading ? (
-            <div className="aspect-[4/3] rounded-lg bg-secondary flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                <span className="text-xs text-muted-foreground">{t("正在生成参考图...", "Generating reference...")}</span>
-              </div>
-            </div>
-          ) : referenceImage ? (
-            <img src={referenceImage} alt={style.nameEn} className="rounded-lg w-full aspect-[4/3] object-cover" />
-          ) : (
-            <div className="aspect-[4/3] rounded-lg bg-secondary flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">{t("参考图生成失败", "Failed to generate reference")}</span>
-            </div>
-          )}
+          <img
+            src={style.referenceImageUrl}
+            alt={style.nameEn}
+            className="rounded-lg w-full aspect-[4/3] object-cover"
+            loading="lazy"
+          />
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            {t("图片来源: Unsplash", "Image source: Unsplash")}
+          </p>
         </div>
 
         {/* Camera Settings */}
