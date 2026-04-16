@@ -1,13 +1,13 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Link, useLocation } from "react-router-dom";
-import { Camera, BookOpen, Clock, Globe } from "lucide-react";
+import { BookOpen, Clock, Globe } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const AppHeader = () => {
   const { lang, setLang, t } = useLanguage();
   const location = useLocation();
 
   const navItems = [
-    { path: "/", icon: Camera, label: t("首页", "Home") },
     { path: "/styles", icon: BookOpen, label: t("风格百科", "Styles") },
     { path: "/history", icon: Clock, label: t("历史记录", "History") },
   ];
@@ -16,9 +16,7 @@ const AppHeader = () => {
     <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
       <div className="container flex items-center justify-between h-14 px-4">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center group-hover:shadow-[var(--shadow-glow-sm)] transition-all">
-            <Camera className="w-4 h-4 text-primary" />
-          </div>
+          <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_hsl(38_92%_50%/0.4)]" />
           <span className="text-lg font-bold text-gradient-gold">{t("你拍的啥", "WhatDidYouShoot")}</span>
         </Link>
 
