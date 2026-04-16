@@ -1,7 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
-import { Home } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { STYLE_DATA } from "@/data/styleData";
 
 const Styles = () => {
@@ -11,19 +9,13 @@ const Styles = () => {
   return (
     <div className="min-h-screen pt-14 px-4 pb-8">
       <div className="max-w-5xl mx-auto">
-        <div className="py-8 flex items-start gap-3">
-          <Button variant="ghost" size="icon" className="shrink-0 mt-1" onClick={() => navigate("/")}>
-            <Home className="w-4 h-4" />
-          </Button>
-          <div className="text-center flex-1">
-            <h1 className="text-3xl font-bold text-gradient-gold mb-2">
-              {t("风格百科", "Style Encyclopedia")}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {t("探索人像摄影风格，点击查看拍摄攻略", "Explore portrait styles, click for shooting guides")}
-            </p>
-          </div>
-          <div className="w-9 shrink-0" /> {/* spacer for centering */}
+        <div className="py-8 text-center">
+          <h1 className="text-3xl font-bold text-gradient-gold mb-2">
+            {t("风格百科", "Style Encyclopedia")}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {t("探索人像摄影风格，点击查看拍摄攻略", "Explore portrait styles, click for shooting guides")}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

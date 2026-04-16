@@ -262,6 +262,29 @@ const Critique = () => {
     if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
     if (line.trim() === "") return <br key={j} />;
 
+    // Table row
+    if (line.trim().startsWith("|")) {
+      const cells = line.split("|").filter(c => c.trim() !== "");
+      // Skip separator row
+      if (cells.every(c => /^[\s:-]+$/.test(c))) return null;
+      const isHeader = j > 0;
+      return (
+        <div key={j} className={`grid grid-cols-3 gap-1 text-xs py-1.5 px-2 ${cells.length > 0 && cells[0].includes("维度") || cells[0].includes("Dimension") ? "font-semibold text-muted-foreground border-b border-border/30 mb-1" : "rounded-lg hover:bg-secondary/30"}`}>
+          {cells.map((cell, k) => {
+            const trimmed = cell.trim();
+            const parts = trimmed.split(/\*\*(.*?)\*\*/g);
+            return (
+              <span key={k} className={`${k === 0 ? "text-center" : k === 1 ? "text-center" : "text-left"} ${k === 1 && trimmed.includes("⭐") ? "text-amber-400" : ""}`}>
+                {parts.map((part, pi) =>
+                  pi % 2 === 1 ? <strong key={pi} className="text-primary font-semibold">{part}</strong> : <span key={pi}>{part}</span>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
+
     const parts = line.split(/\*\*(.*?)\*\*/g);
     return (
       <p key={j} className="text-sm my-0.5">
@@ -352,7 +375,9 @@ const Critique = () => {
             <div className="glass-card px-4 py-3 flex items-center gap-2">
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
               <span className="text-sm text-muted-foreground">
-                {t("正在审判中...", "Judging your photo...")}
+                {messages.filter(m => m.role === "assistant").length === 0
+                  ? t("正在审判中...", "Judging your photo...")
+                  : t("正在思考中...", "Thinking...")}
               </span>
             </div>
           </div>
