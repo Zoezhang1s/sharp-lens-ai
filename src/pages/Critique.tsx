@@ -330,7 +330,7 @@ const Critique = () => {
       {msg.generatedImage && (
         <div className="relative mb-3 group cursor-pointer" onClick={() => setZoomedImage(msg.generatedImage!)}>
           <div className="relative">
-            <img src={msg.generatedImage} alt="AI Generated" className="rounded-lg max-h-80 object-cover w-full border border-primary/30" />
+            <img src={msg.generatedImage} alt="AI Generated" className="rounded-lg w-full border border-primary/30" style={{ maxHeight: "none" }} />
             <div className="absolute top-2 left-2 bg-primary/80 text-primary-foreground text-xs px-2 py-1 rounded-full flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
               AI
