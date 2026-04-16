@@ -21,6 +21,7 @@ interface StyleData {
   settingsEn: string;
   tutorials: { title: string; titleEn: string; url: string; platform: string }[];
   referenceImageQuery: string;
+  referenceImageUrl: string;
 }
 
 export const STYLE_DATA: StyleData[] = [
