@@ -26,7 +26,6 @@ serve(async (req) => {
 
     const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
     if (!DOUBAO_API_KEY) throw new Error("DOUBAO_API_KEY is not configured");
-    console.log("DOUBAO_API_KEY length:", DOUBAO_API_KEY.length, "prefix:", DOUBAO_API_KEY.slice(0, 4), "suffix:", DOUBAO_API_KEY.slice(-4));
 
     // Step 1: Generate an optimized image prompt based on the critique
     const systemMsg = language === "zh"
