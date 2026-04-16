@@ -12,6 +12,49 @@ export interface HistoryRecord {
 
 const STORAGE_KEY = "photo-critique-history";
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+const MAX_THUMB_SIZE = 150;
+
+function compressImage(base64: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(MAX_THUMB_SIZE / img.width, MAX_THUMB_SIZE / img.height, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.5));
+    };
+    img.onerror = () => resolve(base64.slice(0, 500));
+    img.src = base64;
+  });
+}
+
+/** Strip heavy base64 fields from messages before persisting */
+function lightenForStorage(records: HistoryRecord[]): any[] {
+  return records.map((r) => ({
+    ...r,
+    messages: r.messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      detectedStyleId: m.detectedStyleId,
+      // drop imageData & generatedImage to save space
+    })),
+  }));
+}
+
+function saveRecords(records: HistoryRecord[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(lightenForStorage(records)));
+  } catch {
+    // If still too large, keep only last 10
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lightenForStorage(records.slice(0, 10))));
+    } catch {
+      // give up gracefully
+    }
+  }
+}
 
 function loadRecords(): HistoryRecord[] {
   try {
@@ -26,7 +69,6 @@ function loadRecords(): HistoryRecord[] {
 }
 
 export function extractScoreFromText(text: string): number {
-  // Match patterns like "评分: 65/100", "Score: 72/100", "💯 评分: 45/100"
   const match = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
   return match ? parseInt(match[1], 10) : 0;
 }
@@ -34,7 +76,6 @@ export function extractScoreFromText(text: string): number {
 export function generateTitle(text: string, lang: string): string {
   const lines = text.split("\n");
 
-  // Try to extract style name as the core subject
   let style = "";
   for (const line of lines) {
     if (line.includes("当前风格") || line.includes("Current Style")) {
@@ -46,17 +87,14 @@ export function generateTitle(text: string, lang: string): string {
     }
   }
 
-  // Extract score
   const scoreMatch = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
   const score = scoreMatch ? scoreMatch[1] : "";
 
-  // Build concise descriptive title: "日系小清新 · 62分" or "Korean Minimal · 62pts"
   if (style && score) {
     return lang === "zh" ? `${style} · ${score}分` : `${style} · ${score}pts`;
   }
   if (style) return style;
 
-  // Fallback: try to find a subject description from the critique
   for (const line of lines) {
     if (line.includes("构图") || line.includes("Composition") || line.includes("姿势") || line.includes("Pose")) {
       continue;
@@ -73,12 +111,15 @@ export function useHistory() {
   const [records, setRecords] = useState<HistoryRecord[]>(loadRecords);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    saveRecords(records);
   }, [records]);
 
-  const addRecord = useCallback((record: Omit<HistoryRecord, "id" | "timestamp">) => {
+  const addRecord = useCallback(async (record: Omit<HistoryRecord, "id" | "timestamp">) => {
+    // Compress thumbnail before storing
+    const compressedImage = await compressImage(record.imageData);
     const newRecord: HistoryRecord = {
       ...record,
+      imageData: compressedImage,
       id: crypto.randomUUID(),
       timestamp: Date.now(),
     };
