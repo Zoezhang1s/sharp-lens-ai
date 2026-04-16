@@ -154,16 +154,24 @@ const SYSTEM_PROMPT_EN = `You are "WhatDidYouShoot" — the most professional, s
 
 ## ✨ What's Actually Good
 
+&nbsp;
+
 ## 📐 Settings
 **Aperture/shutter/ISO/focal length/WB** advice
+
+&nbsp;
 
 ## 🎨 Style Detection
 **Current Style**: Choose from: Japanese Fresh, Korean Minimal, Neo-Chinese, Boudoir / Intimate, Natural Outdoor, Moody Film, Power Woman, Cyberpunk, Classic Portrait, Dark & Edgy, Retro Film, Urban Street, Minimalist, High Fashion
 **Recommended**: 1-2 better directions, one sentence why
 
+&nbsp;
+
 ## 📱 References
 - 🔍 Xiaohongshu: [keywords](https://www.xiaohongshu.com/search_result?keyword=搜索关键词)
 - 🔍 Douyin: [keywords](https://www.douyin.com/search/搜索关键词)
+
+&nbsp;
 
 ## 📝 One-liner Summary
 **Precise summary, fair and clear**
