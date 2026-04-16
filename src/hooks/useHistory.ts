@@ -4,24 +4,44 @@ export interface HistoryRecord {
   id: string;
   imageData: string; // base64 thumbnail
   summary: string;
+  title: string;
   score: number;
   timestamp: number;
-  messages: Array<{ role: string; content: string }>;
+  messages: Array<{ role: string; content: string; imageData?: string; generatedImage?: string; detectedStyleId?: string }>;
 }
 
 const STORAGE_KEY = "photo-critique-history";
-const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
 function loadRecords(): HistoryRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const records: HistoryRecord[] = JSON.parse(raw);
-    const cutoff = Date.now() - SEVEN_DAYS;
+    const cutoff = Date.now() - THIRTY_DAYS;
     return records.filter((r) => r.timestamp > cutoff);
   } catch {
     return [];
   }
+}
+
+export function extractScoreFromText(text: string): number {
+  // Match patterns like "评分: 65/100", "Score: 72/100", "💯 评分: 45/100"
+  const match = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+export function generateTitle(text: string, lang: string): string {
+  // Extract the opening roast line as the title
+  const lines = text.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith(">") && !l.startsWith("**📷") && !l.startsWith("**💡"));
+  // Find the first real content line after "一句话暴击" or "Opening Roast"
+  for (const line of lines) {
+    const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯]/g, "").trim();
+    if (cleaned.length > 5 && cleaned.length < 80) {
+      return cleaned.slice(0, 50);
+    }
+  }
+  return lang === "zh" ? "照片点评" : "Photo Critique";
 }
 
 export function useHistory() {
@@ -41,6 +61,10 @@ export function useHistory() {
     return newRecord.id;
   }, []);
 
+  const updateRecord = useCallback((id: string, updates: Partial<HistoryRecord>) => {
+    setRecords((prev) => prev.map((r) => r.id === id ? { ...r, ...updates } : r));
+  }, []);
+
   const deleteRecord = useCallback((id: string) => {
     setRecords((prev) => prev.filter((r) => r.id !== id));
   }, []);
@@ -50,5 +74,5 @@ export function useHistory() {
     [records]
   );
 
-  return { records, addRecord, deleteRecord, getRecord };
+  return { records, addRecord, updateRecord, deleteRecord, getRecord };
 }

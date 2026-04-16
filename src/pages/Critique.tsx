@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X, Sparkles, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
 import { STYLE_DATA, STYLE_NAME_MAP } from "@/data/styleData";
+import { useHistory, extractScoreFromText, generateTitle } from "@/hooks/useHistory";
 
 interface Message {
   role: "user" | "assistant";
@@ -18,13 +19,11 @@ interface Message {
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 
 const detectStyleFromText = (text: string): string | undefined => {
-  // Check all style names (Chinese and English)
   for (const style of STYLE_DATA) {
     if (text.includes(style.nameZh) || text.toLowerCase().includes(style.nameEn.toLowerCase())) {
       return style.id;
     }
   }
-  // Check partial names
   for (const [name, id] of Object.entries(STYLE_NAME_MAP)) {
     if (text.includes(name)) return id;
   }
@@ -34,16 +33,31 @@ const detectStyleFromText = (text: string): string | undefined => {
 const Critique = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [historyId, setHistoryId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addRecord, updateRecord, getRecord } = useHistory();
 
   useEffect(() => {
+    // Check if restoring from history
+    const hid = searchParams.get("history");
+    if (hid) {
+      const record = getRecord(hid);
+      if (record) {
+        setHistoryId(hid);
+        setImageData(record.imageData);
+        setMessages(record.messages as Message[]);
+        return;
+      }
+    }
+
     const img = sessionStorage.getItem("critique-image");
     if (img) {
       setImageData(img);
@@ -59,6 +73,27 @@ const Critique = () => {
       navigate("/");
     }
   }, []);
+
+  // Save to history whenever messages change (after initial load)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (messages.length === 0 || !imageData) return;
+    clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const assistantMsgs = messages.filter(m => m.role === "assistant" && !m.generatedImage);
+      const lastAssistant = assistantMsgs[0]?.content || "";
+      const score = extractScoreFromText(assistantMsgs.map(m => m.content).join("\n"));
+      const title = generateTitle(lastAssistant, lang);
+      const summary = lastAssistant.replace(/[#*>\n]/g, " ").trim().slice(0, 100);
+
+      if (historyId) {
+        updateRecord(historyId, { messages, score, title, summary });
+      } else if (assistantMsgs.length > 0) {
+        const id = addRecord({ imageData, summary, title, score, messages });
+        setHistoryId(id);
+      }
+    }, 1000);
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -227,7 +262,6 @@ const Critique = () => {
     if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
     if (line.trim() === "") return <br key={j} />;
 
-    // Render inline bold
     const parts = line.split(/\*\*(.*?)\*\*/g);
     return (
       <p key={j} className="text-sm my-0.5">
@@ -272,6 +306,7 @@ const Critique = () => {
       {msg.detectedStyleId && (
         <Link
           to={`/styles/${msg.detectedStyleId}`}
+          state={{ fromCritique: true, historyId }}
           className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group"
         >
           <BookOpen className="w-4 h-4 text-primary" />
