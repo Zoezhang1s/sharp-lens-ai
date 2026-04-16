@@ -90,6 +90,7 @@ const Critique = () => {
         },
         body: JSON.stringify({
           prompt: critiqueText,
+          imageData: imageData,
           language: lang === "zh" ? "zh" : "en",
         }),
       });

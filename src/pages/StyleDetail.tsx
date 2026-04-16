@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, ExternalLink, Camera, Palette, User, Settings } from "lucide-react";
+import { ArrowLeft, ExternalLink, Camera, Palette, User, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { STYLE_DATA } from "@/data/styleData";
 
@@ -8,6 +9,7 @@ const StyleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const style = STYLE_DATA.find((s) => s.id === id);
 
@@ -24,6 +26,24 @@ const StyleDetail = () => {
       </div>
     );
   }
+
+  const images = style.referenceImageUrls;
+
+  const prevImage = () => setCurrentImageIndex((i) => (i === 0 ? images.length - 1 : i - 1));
+  const nextImage = () => setCurrentImageIndex((i) => (i === images.length - 1 ? 0 : i + 1));
+
+  const handleSwipeStart = (e: React.TouchEvent) => {
+    const startX = e.touches[0].clientX;
+    const el = e.currentTarget;
+    const handleEnd = (ev: TouchEvent) => {
+      const diff = startX - ev.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) {
+        diff > 0 ? nextImage() : prevImage();
+      }
+      el.removeEventListener("touchend", handleEnd);
+    };
+    el.addEventListener("touchend", handleEnd);
+  };
 
   const sections = [
     {
@@ -65,19 +85,46 @@ const StyleDetail = () => {
           </div>
         </div>
 
-        {/* Reference Image */}
+        {/* Reference Images Carousel */}
         <div className="glass-card p-4 mb-6">
           <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
             🎨 {t("风格参考图", "Style Reference")}
           </h3>
-          <img
-            src={style.referenceImageUrl}
-            alt={style.nameEn}
-            className="rounded-lg w-full aspect-[4/3] object-cover"
-            loading="lazy"
-          />
+          <div className="relative" onTouchStart={handleSwipeStart}>
+            <img
+              src={images[currentImageIndex]}
+              alt={`${style.nameEn} reference ${currentImageIndex + 1}`}
+              className="rounded-lg w-full aspect-[4/3] object-cover transition-opacity duration-300"
+              loading="lazy"
+            />
+            {/* Navigation arrows */}
+            <button
+              onClick={prevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/70 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-background/90 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/70 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-background/90 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            {/* Dots */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentImageIndex(i)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    i === currentImageIndex ? "bg-primary w-4" : "bg-foreground/40"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            {t("图片来源: Unsplash", "Image source: Unsplash")}
+            {currentImageIndex + 1} / {images.length} · {t("左右滑动浏览更多", "Swipe to browse")}
           </p>
         </div>
 
@@ -102,7 +149,6 @@ const StyleDetail = () => {
               </h3>
               <div className="text-sm text-foreground leading-relaxed space-y-1">
                 {section.content.split("\n").map((line, j) => {
-                  // Render bold markdown
                   const parts = line.split(/\*\*(.*?)\*\*/g);
                   return (
                     <p key={j} className="my-0.5">

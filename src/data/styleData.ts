@@ -21,7 +21,7 @@ interface StyleData {
   settingsEn: string;
   tutorials: { title: string; titleEn: string; url: string; platform: string }[];
   referenceImageQuery: string;
-  referenceImageUrl: string;
+  referenceImageUrls: string[];
 }
 
 export const STYLE_DATA: StyleData[] = [
@@ -44,7 +44,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "日系人像摄影完全指南", titleEn: "Complete Japanese Portrait Guide", url: "https://www.bilibili.com/search?keyword=日系人像摄影教程", platform: "B站" },
     ],
     referenceImageQuery: "日系小清新人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1514315384763-ba401779410f?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1504703395950-b89145a5425b?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "korean-minimal",
@@ -64,7 +71,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "韩风ins感调色分享", titleEn: "Korean INS Style Color Grading", url: "https://www.douyin.com/search/韩系人像调色", platform: "抖音" },
     ],
     referenceImageQuery: "韩系ins风人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "neo-chinese",
@@ -84,7 +98,13 @@ export const STYLE_DATA: StyleData[] = [
       { title: "古风人像调色教程", titleEn: "Chinese Style Color Grading", url: "https://www.douyin.com/search/新中式人像拍摄", platform: "抖音" },
     ],
     referenceImageQuery: "新中式古风人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1609132718484-cc90df3417f8?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1609132718484-cc90df3417f8?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1581090700227-1e37b190418e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1545048702-79362596cdc9?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1606567595334-d39972c85dbe?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1617627143233-46e0efcc0641?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "boudoir",
@@ -103,7 +123,13 @@ export const STYLE_DATA: StyleData[] = [
       { title: "私房人像拍摄技巧", titleEn: "Boudoir Portrait Tips", url: "https://www.xiaohongshu.com/search_result?keyword=私房人像拍摄", platform: "小红书" },
     ],
     referenceImageQuery: "私房写真人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1526510747491-58f928ec870f?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1541779408-c355f313012d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "natural-outdoor",
@@ -122,7 +148,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "户外人像拍摄指南", titleEn: "Outdoor Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=户外人像摄影技巧", platform: "小红书" },
     ],
     referenceImageQuery: "自然户外人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1504439468489-c8920d796a29?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1516726817505-f5ed825624d8?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1464746133101-a2c3f88e0dd9?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1476234251651-f353703a034d?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "moody-film",
@@ -142,7 +175,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "胶片感调色教程", titleEn: "Film Look Color Grading", url: "https://www.douyin.com/search/胶片感人像调色", platform: "抖音" },
     ],
     referenceImageQuery: "情绪胶片风人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1520785643438-5bf77931f493?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1492447166138-50c3889fccb1?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1525875975471-999f65706a10?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "power-woman",
@@ -161,7 +201,13 @@ export const STYLE_DATA: StyleData[] = [
       { title: "大女主气场人像拍法", titleEn: "Power Woman Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=大女主人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "大女主气场人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1560087637-bf797bc7796a?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "cyberpunk",
@@ -181,7 +227,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "霓虹灯人像拍摄技巧", titleEn: "Neon Portrait Techniques", url: "https://www.douyin.com/search/赛博朋克人像拍摄", platform: "抖音" },
     ],
     referenceImageQuery: "赛博朋克霓虹夜景人像",
-    referenceImageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1557862921-37829c790f19?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1614624532983-4ce03382d63d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "classic-portrait",
@@ -200,7 +253,13 @@ export const STYLE_DATA: StyleData[] = [
       { title: "经典肖像布光教程", titleEn: "Classic Portrait Lighting", url: "https://www.xiaohongshu.com/search_result?keyword=经典人像布光教程", platform: "小红书" },
     ],
     referenceImageQuery: "经典肖像人像摄影布光",
-    referenceImageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1531927557220-a9e23c1e4794?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "dark-edgy",
@@ -219,7 +278,13 @@ export const STYLE_DATA: StyleData[] = [
       { title: "暗黑风人像拍摄", titleEn: "Dark Edgy Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=暗黑风人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "暗黑风酷炫人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1534308143481-c55f00be8bd7?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1560087637-bf797bc7796a?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1492447166138-50c3889fccb1?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "retro-film",
@@ -238,7 +303,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "复古胶片调色教程", titleEn: "Retro Film Color Grading", url: "https://www.xiaohongshu.com/search_result?keyword=复古胶片人像调色", platform: "小红书" },
     ],
     referenceImageQuery: "复古胶片风人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1520785643438-5bf77931f493?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1525875975471-999f65706a10?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1496440737103-cd596325d314?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "urban-street",
@@ -257,7 +329,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "街拍人像摄影教程", titleEn: "Street Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=城市街拍人像", platform: "小红书" },
     ],
     referenceImageQuery: "城市街拍人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "minimalist",
@@ -276,7 +355,13 @@ export const STYLE_DATA: StyleData[] = [
       { title: "极简人像摄影教程", titleEn: "Minimalist Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=极简人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "极简留白人像摄影",
-    referenceImageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&fit=crop&q=80",
+    ],
   },
   {
     id: "high-fashion",
@@ -295,7 +380,14 @@ export const STYLE_DATA: StyleData[] = [
       { title: "时尚大片拍摄教程", titleEn: "High Fashion Shoot Guide", url: "https://www.xiaohongshu.com/search_result?keyword=时尚大片人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "高奢时尚人像摄影杂志",
-    referenceImageUrl: "https://images.unsplash.com/photo-1469460340997-2f854421e72f?w=800&fit=crop&q=80",
+    referenceImageUrls: [
+      "https://images.unsplash.com/photo-1469460340997-2f854421e72f?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&fit=crop&q=80",
+    ],
   },
 ];
 
