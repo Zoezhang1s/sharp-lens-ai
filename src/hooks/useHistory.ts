@@ -32,27 +32,38 @@ export function extractScoreFromText(text: string): number {
 }
 
 export function generateTitle(text: string, lang: string): string {
-  // Extract the opening roast line as a theme-based title
   const lines = text.split("\n");
-  let foundRoast = false;
+
+  // Try to extract style name as the core subject
+  let style = "";
   for (const line of lines) {
-    // Look for the line after "一句话暴击" or "Opening Roast"
-    if (line.includes("一句话暴击") || line.includes("Opening Roast")) {
-      foundRoast = true;
-      continue;
-    }
-    if (foundRoast) {
-      const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()]/g, "").trim();
-      if (cleaned.length > 3 && cleaned.length < 80) {
-        return cleaned.slice(0, 40);
+    if (line.includes("当前风格") || line.includes("Current Style")) {
+      const cleaned = line.replace(/\*\*/g, "").replace(/当前风格[:\s]*/g, "").replace(/Current Style[:\s]*/g, "").trim();
+      if (cleaned.length > 1 && cleaned.length < 30) {
+        style = cleaned;
+        break;
       }
     }
   }
-  // Fallback: first meaningful content line
+
+  // Extract score
+  const scoreMatch = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+  const score = scoreMatch ? scoreMatch[1] : "";
+
+  // Build concise descriptive title: "日系小清新 · 62分" or "Korean Minimal · 62pts"
+  if (style && score) {
+    return lang === "zh" ? `${style} · ${score}分` : `${style} · ${score}pts`;
+  }
+  if (style) return style;
+
+  // Fallback: try to find a subject description from the critique
   for (const line of lines) {
-    const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯]/g, "").trim();
-    if (cleaned.length > 5 && cleaned.length < 80 && !line.startsWith("#") && !line.startsWith("---") && !line.startsWith(">")) {
-      return cleaned.slice(0, 40);
+    if (line.includes("构图") || line.includes("Composition") || line.includes("姿势") || line.includes("Pose")) {
+      continue;
+    }
+    const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()🎨📱📝📐✨🔧💡❌>]/g, "").trim();
+    if (cleaned.length > 4 && cleaned.length < 30 && !line.startsWith("#") && !line.startsWith("---") && !line.startsWith("|")) {
+      return score ? `${cleaned.slice(0, 20)} · ${score}${lang === "zh" ? "分" : "pts"}` : cleaned.slice(0, 25);
     }
   }
   return lang === "zh" ? "照片点评" : "Photo Critique";
