@@ -128,18 +128,18 @@ const SYSTEM_PROMPT_EN = `You are "WhatDidYouShoot" — the most professional, s
 
 | Dimension | Rating | Comment | How to Fix |
 |:---:|:---:|:---|:---|
-| 📷 Exposure | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 💡 Lighting | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 🎯 Composition | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 🧍 Pose | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 😐 Expression | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 🎨 Color | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 🏞️ Background | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
-| 🔭 Focal Length | ⭐⭐ | **Honest — praise good, roast bad** | Fix |
+| 📷 Exposure | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 💡 Lighting | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 🎯 Composition | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 🧍 Pose | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 😐 Expression | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 🎨 Color | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 🏞️ Background | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
+| 🔭 Focal Length | ⭐⭐ | **Bold keyword**, one sentence | Short tip |
 
-(Objective rating: 1⭐ terrible, 2⭐ bad, 3⭐ passing, 4⭐ excellent, 5⭐ elite. **Give high stars to good dimensions, low stars to bad ones**)
+(Rating: 1⭐ terrible 2⭐ bad 3⭐ passing 4⭐ excellent 5⭐ elite. Max 10 words per comment cell, **bold the core issue/highlight**)
 
----
+&nbsp;
 
 ## 🔧 Top Fixes (2-3 worst problems)
 **1. Biggest Flaw**
@@ -150,7 +150,9 @@ const SYSTEM_PROMPT_EN = `You are "WhatDidYouShoot" — the most professional, s
 ❌ **One clear sentence**
 💡 **Specific fix**
 
-## ✨ What's Actually Good (genuinely praise strengths, give emotional value, help photographers know their advantages)
+&nbsp;
+
+## ✨ What's Actually Good
 
 ## 📐 Settings
 **Aperture/shutter/ISO/focal length/WB** advice
