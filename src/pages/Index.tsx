@@ -43,7 +43,7 @@ const Index = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 pt-16 pb-8 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px]" />
@@ -54,11 +54,11 @@ const Index = () => {
       <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg w-full animate-fade-up">
         {/* Logo area */}
         <div className="flex flex-col items-center gap-3">
-          <img src={logoImg} alt="Logo" className="w-20 h-20 object-contain" width={512} height={512} />
-          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-gradient-gold">
+          <img src={logoImg} alt="Logo" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-[0_0_20px_hsl(38_92%_50%/0.3)]" width={512} height={512} />
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-gradient-gold">
             {t("你拍的啥", "WhatDidYouShoot")}
           </h1>
-          <p className="text-muted-foreground text-lg tracking-widest uppercase font-light">
+          <p className="text-muted-foreground text-base sm:text-lg tracking-widest uppercase font-light">
             {t("烂片一张", "Another Bad Shot")}
           </p>
         </div>
@@ -80,7 +80,7 @@ const Index = () => {
           onDragLeave={() => setIsDragging(false)}
           onDrop={onDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`w-full aspect-[4/3] max-w-md rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-4 group ${
+          className={`w-full aspect-[3/2] sm:aspect-[4/3] max-w-md rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-3 sm:gap-4 group ${
             isDragging
               ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
               : "border-border/50 hover:border-primary/40 hover:bg-card/30"
@@ -93,23 +93,23 @@ const Index = () => {
           </div>
           <div className="text-center">
             <p className={`font-medium transition-colors ${isDragging ? "text-primary" : "text-foreground"}`}>
-              {t("拖放照片到这里", "Drop your photo here")}
+              {t("拖放烂片到这里", "Drop your bad shot here")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {t("或点击选择文件 · JPG / PNG / HEIC", "or click to browse · JPG / PNG / HEIC")}
+              {t("或点击选择文件 · JPG / PNG", "or click to browse · JPG / PNG")}
             </p>
           </div>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png"
             onChange={onFileChange}
             className="hidden"
           />
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-3 gap-3 w-full max-w-md">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-md">
           {[
             { icon: Aperture, label: t("专业点评", "Pro Critique"), desc: t("8大维度分析", "8 Dimensions") },
             { icon: Sparkles, label: t("AI优化图", "AI Enhanced"), desc: t("生成参考图", "Reference Photo") },
