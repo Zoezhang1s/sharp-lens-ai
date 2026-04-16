@@ -83,7 +83,7 @@ Requirements:
       prompt: imagePrompt,
       sequential_image_generation: "disabled",
       response_format: "url",
-      size: "2K",
+      size: "1080x1920",
       stream: false,
       watermark: false,
     };
