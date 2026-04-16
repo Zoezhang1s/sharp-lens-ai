@@ -22,28 +22,29 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
+    if (!DOUBAO_API_KEY) throw new Error("DOUBAO_API_KEY is not configured");
 
     // Step 1: Generate an optimized image prompt based on the critique
     const systemMsg = language === "zh"
-      ? `你是一个专业的摄影指导AI。根据用户提供的摄影点评内容，生成一段用于AI修图的详细指令（中文）。
+      ? `你是一个专业的摄影指导AI。根据用户提供的摄影点评内容，生成一段用于AI图生图的详细提示词（中文）。
 要求：
-1. 指令是基于原图进行修改优化，不是重新生成
+1. 描述一张基于原图优化后的理想照片应该是什么样子
 2. 改进点评中指出的所有问题（构图、光线、姿势、表情、背景等）
-3. 描述具体的修改方向：光线如何调整、构图如何改善、色调如何优化
-4. 保持人物主体不变，只优化摄影效果
-5. 只输出修图指令，不要其他内容
-6. 指令不超过200字`
-      : `You are a professional photography direction AI. Based on the critique provided, generate a detailed image editing instruction.
+3. 描述具体的场景、光线、色调、构图、人物状态
+4. 保持原图的基本主题和风格方向
+5. 只输出提示词，不要其他内容
+6. 提示词不超过200字`
+      : `You are a professional photography direction AI. Based on the critique provided, generate a detailed image prompt.
 Requirements:
-1. The instruction is to modify/optimize the original photo, NOT generate a new one
+1. Describe what an ideally optimized version of the original photo should look like
 2. Fix all issues mentioned in the critique (composition, lighting, pose, expression, background)
-3. Be specific about adjustments: lighting changes, composition improvements, color grading
-4. Keep the subject unchanged, only optimize photography effects
-5. Output ONLY the editing instruction, nothing else
-6. Keep under 200 characters`;
+3. Be specific about scene, lighting, color grading, composition, subject state
+4. Keep the original theme and style direction
+5. Output ONLY the prompt, nothing else
+6. Keep under 200 words`;
 
     const promptGenResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -72,67 +73,24 @@ Requirements:
     const promptGenData = await promptGenResp.json();
     const imagePrompt = promptGenData.choices?.[0]?.message?.content?.trim();
 
-    if (!imagePrompt) {
-      throw new Error("Empty image prompt generated");
-    }
+    if (!imagePrompt) throw new Error("Empty image prompt generated");
 
-    console.log("Generated editing prompt:", imagePrompt);
+    console.log("Generated image prompt:", imagePrompt);
 
-    // Step 2: Use Gemini image editing to modify the original photo
+    // Step 2: Use Doubao Seedream to generate image, with original image as reference if available
+    const doubaoBody: Record<string, unknown> = {
+      model: "doubao-seedream-4-0-250828",
+      prompt: imagePrompt,
+      sequential_image_generation: "disabled",
+      response_format: "url",
+      size: "2K",
+      stream: false,
+      watermark: false,
+    };
+
+    // Pass the original image as reference for image-to-image generation
     if (imageData) {
-      // Edit the user's uploaded image using Gemini image model
-      const editInstruction = language === "zh"
-        ? `请你参考图1的主体形象（保留人物的五官、发型、体型等特征不变），基于这张原图进行以下修改优化：${imagePrompt}`
-        : `Please reference the subject in Image 1 (preserve their facial features, hairstyle, body type exactly), and apply the following optimizations to the original photo: ${imagePrompt}`;
-
-      const editResp = await fetch(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3.1-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: editInstruction },
-                  { type: "image_url", image_url: { url: imageData } },
-                ],
-              },
-            ],
-            modalities: ["image", "text"],
-          }),
-        }
-      );
-
-      if (!editResp.ok) {
-        const errText = await editResp.text();
-        console.error("Image edit error:", editResp.status, errText);
-        throw new Error(`Image editing failed [${editResp.status}]`);
-      }
-
-      const editData = await editResp.json();
-      const generatedImageUrl = editData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-      if (!generatedImageUrl) {
-        console.error("No image in edit response:", JSON.stringify(editData).slice(0, 500));
-        throw new Error("No image returned from editing");
-      }
-
-      return new Response(
-        JSON.stringify({ imageUrl: generatedImageUrl, prompt: imagePrompt }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fallback: no image provided, use Doubao for generation
-    const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
-    if (!DOUBAO_API_KEY) {
-      throw new Error("DOUBAO_API_KEY is not configured");
+      doubaoBody.image = imageData; // base64 data URI or URL
     }
 
     const doubaoResp = await fetch(
@@ -143,15 +101,7 @@ Requirements:
           "Content-Type": "application/json",
           Authorization: `Bearer ${DOUBAO_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: "doubao-seedream-4-0-250828",
-          prompt: imagePrompt,
-          sequential_image_generation: "disabled",
-          response_format: "url",
-          size: "1024x1024",
-          stream: false,
-          watermark: false,
-        }),
+        body: JSON.stringify(doubaoBody),
       }
     );
 
