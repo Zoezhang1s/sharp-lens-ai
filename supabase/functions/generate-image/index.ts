@@ -21,34 +21,29 @@ serve(async (req) => {
       );
     }
 
-    const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
-    if (!DOUBAO_API_KEY) {
-      throw new Error("DOUBAO_API_KEY is not configured");
-    }
-
-    // First, use Lovable AI to generate an optimized prompt based on the critique
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Step 1: Generate an optimized image prompt based on the critique
     const systemMsg = language === "zh"
-      ? `你是一个专业的摄影指导AI。根据用户提供的摄影点评内容，生成一段用于AI生图的详细提示词（中文），描述一张优化后的人像摄影作品。
+      ? `你是一个专业的摄影指导AI。根据用户提供的摄影点评内容，生成一段用于AI修图的详细指令（中文）。
 要求：
-1. 保留原照片中人物的基本特征（性别、大致年龄、发型等）
+1. 指令是基于原图进行修改优化，不是重新生成
 2. 改进点评中指出的所有问题（构图、光线、姿势、表情、背景等）
-3. 提示词要具体描述：光线方向和质感、构图方式、人物姿势和表情、背景环境、色调风格
-4. 加入摄影相关的渲染关键词：景深、光影、质感、高清等
-5. 只输出提示词，不要其他内容
-6. 提示词不超过200字`
-      : `You are a professional photography direction AI. Based on the photography critique provided, generate a detailed image generation prompt (in Chinese) describing an optimized portrait photo.
+3. 描述具体的修改方向：光线如何调整、构图如何改善、色调如何优化
+4. 保持人物主体不变，只优化摄影效果
+5. 只输出修图指令，不要其他内容
+6. 指令不超过200字`
+      : `You are a professional photography direction AI. Based on the critique provided, generate a detailed image editing instruction.
 Requirements:
-1. Keep the subject's basic features (gender, approximate age, hairstyle)
+1. The instruction is to modify/optimize the original photo, NOT generate a new one
 2. Fix all issues mentioned in the critique (composition, lighting, pose, expression, background)
-3. Be specific about: light direction and quality, composition, pose and expression, background, color tone
-4. Include photography rendering keywords: depth of field, lighting, texture, high definition
-5. Output ONLY the prompt, nothing else
-6. Keep the prompt under 200 characters in Chinese`;
+3. Be specific about adjustments: lighting changes, composition improvements, color grading
+4. Keep the subject unchanged, only optimize photography effects
+5. Output ONLY the editing instruction, nothing else
+6. Keep under 200 characters`;
 
     const promptGenResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -81,9 +76,63 @@ Requirements:
       throw new Error("Empty image prompt generated");
     }
 
-    console.log("Generated image prompt:", imagePrompt);
+    console.log("Generated editing prompt:", imagePrompt);
 
-    // Call Doubao Seedream API
+    // Step 2: Use Gemini image editing to modify the original photo
+    if (imageData) {
+      // Edit the user's uploaded image using Gemini image model
+      const editInstruction = `请你参考图1的主体形象，${imagePrompt}`;
+
+      const editResp = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: editInstruction },
+                  { type: "image_url", image_url: { url: imageData } },
+                ],
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
+        }
+      );
+
+      if (!editResp.ok) {
+        const errText = await editResp.text();
+        console.error("Image edit error:", editResp.status, errText);
+        throw new Error(`Image editing failed [${editResp.status}]`);
+      }
+
+      const editData = await editResp.json();
+      const generatedImageUrl = editData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (!generatedImageUrl) {
+        console.error("No image in edit response:", JSON.stringify(editData).slice(0, 500));
+        throw new Error("No image returned from editing");
+      }
+
+      return new Response(
+        JSON.stringify({ imageUrl: generatedImageUrl, prompt: imagePrompt }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fallback: no image provided, use Doubao for generation
+    const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
+    if (!DOUBAO_API_KEY) {
+      throw new Error("DOUBAO_API_KEY is not configured");
+    }
+
     const doubaoResp = await fetch(
       "https://ark.cn-beijing.volces.com/api/v3/images/generations",
       {
