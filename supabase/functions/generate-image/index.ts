@@ -81,7 +81,9 @@ Requirements:
     // Step 2: Use Gemini image editing to modify the original photo
     if (imageData) {
       // Edit the user's uploaded image using Gemini image model
-      const editInstruction = `请你参考图1的主体形象，${imagePrompt}`;
+      const editInstruction = language === "zh"
+        ? `请你参考图1的主体形象（保留人物的五官、发型、体型等特征不变），基于这张原图进行以下修改优化：${imagePrompt}`
+        : `Please reference the subject in Image 1 (preserve their facial features, hairstyle, body type exactly), and apply the following optimizations to the original photo: ${imagePrompt}`;
 
       const editResp = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -92,7 +94,7 @@ Requirements:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
+            model: "google/gemini-3.1-flash-image-preview",
             messages: [
               {
                 role: "user",
