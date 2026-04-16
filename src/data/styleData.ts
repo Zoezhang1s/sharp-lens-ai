@@ -44,6 +44,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "日系人像摄影完全指南", titleEn: "Complete Japanese Portrait Guide", url: "https://www.bilibili.com/search?keyword=日系人像摄影教程", platform: "B站" },
     ],
     referenceImageQuery: "日系小清新人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&fit=crop&q=80",
   },
   {
     id: "korean-minimal",
@@ -63,6 +64,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "韩风ins感调色分享", titleEn: "Korean INS Style Color Grading", url: "https://www.douyin.com/search/韩系人像调色", platform: "抖音" },
     ],
     referenceImageQuery: "韩系ins风人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&fit=crop&q=80",
   },
   {
     id: "neo-chinese",
@@ -82,6 +84,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "古风人像调色教程", titleEn: "Chinese Style Color Grading", url: "https://www.douyin.com/search/新中式人像拍摄", platform: "抖音" },
     ],
     referenceImageQuery: "新中式古风人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1609132718484-cc90df3417f8?w=800&fit=crop&q=80",
   },
   {
     id: "boudoir",
@@ -100,6 +103,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "私房人像拍摄技巧", titleEn: "Boudoir Portrait Tips", url: "https://www.xiaohongshu.com/search_result?keyword=私房人像拍摄", platform: "小红书" },
     ],
     referenceImageQuery: "私房写真人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=800&fit=crop&q=80",
   },
   {
     id: "natural-outdoor",
@@ -118,6 +122,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "户外人像拍摄指南", titleEn: "Outdoor Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=户外人像摄影技巧", platform: "小红书" },
     ],
     referenceImageQuery: "自然户外人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&fit=crop&q=80",
   },
   {
     id: "moody-film",
@@ -137,6 +142,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "胶片感调色教程", titleEn: "Film Look Color Grading", url: "https://www.douyin.com/search/胶片感人像调色", platform: "抖音" },
     ],
     referenceImageQuery: "情绪胶片风人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&fit=crop&q=80",
   },
   {
     id: "power-woman",
@@ -155,6 +161,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "大女主气场人像拍法", titleEn: "Power Woman Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=大女主人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "大女主气场人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&fit=crop&q=80",
   },
   {
     id: "cyberpunk",
@@ -174,6 +181,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "霓虹灯人像拍摄技巧", titleEn: "Neon Portrait Techniques", url: "https://www.douyin.com/search/赛博朋克人像拍摄", platform: "抖音" },
     ],
     referenceImageQuery: "赛博朋克霓虹夜景人像",
+    referenceImageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&fit=crop&q=80",
   },
   {
     id: "classic-portrait",
@@ -192,6 +200,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "经典肖像布光教程", titleEn: "Classic Portrait Lighting", url: "https://www.xiaohongshu.com/search_result?keyword=经典人像布光教程", platform: "小红书" },
     ],
     referenceImageQuery: "经典肖像人像摄影布光",
+    referenceImageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&fit=crop&q=80",
   },
   {
     id: "dark-edgy",
@@ -210,6 +219,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "暗黑风人像拍摄", titleEn: "Dark Edgy Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=暗黑风人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "暗黑风酷炫人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=800&fit=crop&q=80",
   },
   {
     id: "retro-film",
@@ -228,6 +238,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "复古胶片调色教程", titleEn: "Retro Film Color Grading", url: "https://www.xiaohongshu.com/search_result?keyword=复古胶片人像调色", platform: "小红书" },
     ],
     referenceImageQuery: "复古胶片风人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&fit=crop&q=80",
   },
   {
     id: "urban-street",
@@ -246,6 +257,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "街拍人像摄影教程", titleEn: "Street Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=城市街拍人像", platform: "小红书" },
     ],
     referenceImageQuery: "城市街拍人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&fit=crop&q=80",
   },
   {
     id: "minimalist",
@@ -264,6 +276,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "极简人像摄影教程", titleEn: "Minimalist Portrait Guide", url: "https://www.xiaohongshu.com/search_result?keyword=极简人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "极简留白人像摄影",
+    referenceImageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&fit=crop&q=80",
   },
   {
     id: "high-fashion",
@@ -282,6 +295,7 @@ export const STYLE_DATA: StyleData[] = [
       { title: "时尚大片拍摄教程", titleEn: "High Fashion Shoot Guide", url: "https://www.xiaohongshu.com/search_result?keyword=时尚大片人像摄影", platform: "小红书" },
     ],
     referenceImageQuery: "高奢时尚人像摄影杂志",
+    referenceImageUrl: "https://images.unsplash.com/photo-1469460340997-2f854421e72f?w=800&fit=crop&q=80",
   },
 ];
 
