@@ -89,8 +89,7 @@ const Critique = () => {
       if (historyId) {
         updateRecord(historyId, { messages, score, title, summary });
       } else if (assistantMsgs.length > 0) {
-        const id = addRecord({ imageData, summary, title, score, messages });
-        setHistoryId(id);
+        addRecord({ imageData, summary, title, score, messages }).then((id) => setHistoryId(id));
       }
     }, 1000);
   }, [messages]);
