@@ -1,6 +1,6 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, Clock, Globe } from "lucide-react";
+import { Home, BookOpen, Clock, Globe } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
 const AppHeader = () => {
@@ -8,6 +8,7 @@ const AppHeader = () => {
   const location = useLocation();
 
   const navItems = [
+    { path: "/", icon: Home, label: t("首页", "Home") },
     { path: "/styles", icon: BookOpen, label: t("风格百科", "Styles") },
     { path: "/history", icon: Clock, label: t("历史记录", "History") },
   ];

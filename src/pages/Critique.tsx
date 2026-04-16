@@ -352,7 +352,9 @@ const Critique = () => {
             <div className="glass-card px-4 py-3 flex items-center gap-2">
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
               <span className="text-sm text-muted-foreground">
-                {t("正在审判中...", "Judging your photo...")}
+                {messages.filter(m => m.role === "assistant").length === 0
+                  ? t("正在审判中...", "Judging your photo...")
+                  : t("正在思考中...", "Thinking...")}
               </span>
             </div>
           </div>
