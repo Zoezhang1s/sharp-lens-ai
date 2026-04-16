@@ -256,11 +256,11 @@ const Critique = () => {
   };
 
   const renderMarkdownLine = (line: string, j: number) => {
-    if (line.startsWith("## ")) return <h2 key={j} className="text-base font-bold mt-4 mb-2 text-primary">{line.replace("## ", "")}</h2>;
-    if (line.startsWith("### ")) return <h3 key={j} className="text-sm font-semibold mt-3 mb-1">{line.replace("### ", "")}</h3>;
-    if (line.startsWith("---")) return <hr key={j} className="my-3 border-border/30" />;
-    if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
-    if (line.trim() === "") return <br key={j} />;
+    if (line.startsWith("## ")) return <h2 key={j} className="text-base font-bold mt-3 mb-1 text-primary">{line.replace("## ", "")}</h2>;
+    if (line.startsWith("### ")) return <h3 key={j} className="text-sm font-semibold mt-2 mb-0.5">{line.replace("### ", "")}</h3>;
+    if (line.startsWith("---")) return <hr key={j} className="my-2 border-border/30" />;
+    if (line.startsWith("> ")) return <blockquote key={j} className="border-l-2 border-primary/40 pl-3 my-1.5 text-muted-foreground italic">{line.replace("> ", "")}</blockquote>;
+    if (line.trim() === "") return null;
 
     // Table row
     if (line.trim().startsWith("|")) {
