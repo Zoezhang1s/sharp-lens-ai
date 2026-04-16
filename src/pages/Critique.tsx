@@ -267,14 +267,17 @@ const Critique = () => {
       const cells = line.split("|").filter(c => c.trim() !== "");
       // Skip separator row
       if (cells.every(c => /^[\s:-]+$/.test(c))) return null;
-      const isHeader = j > 0;
+      const colCount = cells.length;
+      const isHeaderRow = cells[0]?.includes("维度") || cells[0]?.includes("Dimension");
       return (
-        <div key={j} className={`grid grid-cols-3 gap-1 text-xs py-1.5 px-2 ${cells.length > 0 && cells[0].includes("维度") || cells[0].includes("Dimension") ? "font-semibold text-muted-foreground border-b border-border/30 mb-1" : "rounded-lg hover:bg-secondary/30"}`}>
+        <div key={j} className={`grid gap-1 text-xs py-1.5 px-2 ${isHeaderRow ? "font-semibold text-muted-foreground border-b border-border/30 mb-1" : "rounded-lg hover:bg-secondary/30"}`}
+          style={{ gridTemplateColumns: colCount >= 4 ? "auto 80px 1fr 1fr" : "auto 80px 1fr" }}
+        >
           {cells.map((cell, k) => {
             const trimmed = cell.trim();
             const parts = trimmed.split(/\*\*(.*?)\*\*/g);
             return (
-              <span key={k} className={`${k === 0 ? "text-center" : k === 1 ? "text-center" : "text-left"} ${k === 1 && trimmed.includes("⭐") ? "text-amber-400" : ""}`}>
+              <span key={k} className={`${k <= 1 ? "text-center" : "text-left"} ${k === 1 && trimmed.includes("⭐") ? "text-amber-400" : ""}`}>
                 {parts.map((part, pi) =>
                   pi % 2 === 1 ? <strong key={pi} className="text-primary font-semibold">{part}</strong> : <span key={pi}>{part}</span>
                 )}
