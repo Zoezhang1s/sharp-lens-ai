@@ -64,7 +64,7 @@ const Critique = () => {
       sessionStorage.removeItem("critique-image");
       const userMsg: Message = {
         role: "user",
-        content: t("请点评这张照片", "Please critique this photo"),
+        content: t("请锐评这张照片", "Please critique this photo"),
         imageData: img,
       };
       setMessages([userMsg]);
@@ -245,7 +245,7 @@ const Critique = () => {
       setImageData(img);
       const userMsg: Message = {
         role: "user",
-        content: t("请点评这张新照片", "Please critique this new photo"),
+        content: t("请锐评这张新照片", "Please critique this new photo"),
         imageData: img,
       };
       const newMessages = [...messages, userMsg];
