@@ -32,13 +32,27 @@ export function extractScoreFromText(text: string): number {
 }
 
 export function generateTitle(text: string, lang: string): string {
-  // Extract the opening roast line as the title
-  const lines = text.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith(">") && !l.startsWith("**📷") && !l.startsWith("**💡"));
-  // Find the first real content line after "一句话暴击" or "Opening Roast"
+  // Extract the opening roast line as a theme-based title
+  const lines = text.split("\n");
+  let foundRoast = false;
+  for (const line of lines) {
+    // Look for the line after "一句话暴击" or "Opening Roast"
+    if (line.includes("一句话暴击") || line.includes("Opening Roast")) {
+      foundRoast = true;
+      continue;
+    }
+    if (foundRoast) {
+      const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()]/g, "").trim();
+      if (cleaned.length > 3 && cleaned.length < 80) {
+        return cleaned.slice(0, 40);
+      }
+    }
+  }
+  // Fallback: first meaningful content line
   for (const line of lines) {
     const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯]/g, "").trim();
-    if (cleaned.length > 5 && cleaned.length < 80) {
-      return cleaned.slice(0, 50);
+    if (cleaned.length > 5 && cleaned.length < 80 && !line.startsWith("#") && !line.startsWith("---") && !line.startsWith(">")) {
+      return cleaned.slice(0, 40);
     }
   }
   return lang === "zh" ? "照片点评" : "Photo Critique";
