@@ -288,16 +288,31 @@ const Critique = () => {
       );
     }
 
-    const parts = line.split(/\*\*(.*?)\*\*/g);
+    // Render inline content with bold and links
+    const renderInline = (text: string) => {
+      // First split by markdown links [text](url)
+      const linkParts = text.split(/(\[.*?\]\(.*?\))/g);
+      return linkParts.map((seg, si) => {
+        const linkMatch = seg.match(/^\[(.*?)\]\((.*?)\)$/);
+        if (linkMatch) {
+          return (
+            <a key={si} href={linkMatch[2]} target="_blank" rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">
+              {linkMatch[1]}
+            </a>
+          );
+        }
+        // Then handle bold
+        const boldParts = seg.split(/\*\*(.*?)\*\*/g);
+        return boldParts.map((part, pi) =>
+          pi % 2 === 1 ? <strong key={`${si}-${pi}`} className="text-primary font-semibold">{part}</strong> : <span key={`${si}-${pi}`}>{part}</span>
+        );
+      });
+    };
+
     return (
       <p key={j} className="text-sm my-0.5">
-        {parts.map((part, k) =>
-          k % 2 === 1 ? (
-            <strong key={k} className="text-primary font-semibold">{part}</strong>
-          ) : (
-            <span key={k}>{part}</span>
-          )
-        )}
+        {renderInline(line)}
       </p>
     );
   };
