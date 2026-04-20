@@ -63,7 +63,8 @@ build_project() {
         npm install -g pnpm
     fi
 
-    # 安装项目依赖
+    # 安装项目依赖（清除旧依赖避免版本冲突）
+    rm -rf node_modules pnpm-lock.yaml
     pnpm install
 
     # 构建
