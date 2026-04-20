@@ -113,12 +113,12 @@ const Critique = () => {
     });
   };
 
-  const generateOptimizedImage = async (critiqueText: string) => {
-    // Fallback: pull from the most recent user message if state is empty
-    // (can happen when restoring from history or after navigation).
+  const generateOptimizedImage = async (critiqueText: string, sourceMessages?: Message[]) => {
+    const baseMessages = sourceMessages ?? messages;
+    // Prefer the current flow's source image to avoid stale React state during first-run generation.
     const refImage =
+      [...baseMessages].reverse().find((m) => m.role === "user" && m.imageData)?.imageData ||
       imageData ||
-      [...messages].reverse().find((m) => m.role === "user" && m.imageData)?.imageData ||
       null;
 
     if (!refImage) {
@@ -146,6 +146,9 @@ const Critique = () => {
       if (!resp.ok) {
         const data = await resp.json().catch(() => ({ error: "Unknown error" }));
         console.error("Image gen error:", data.error);
+        toast.error(
+          t("参考图生成失败，请重试", "Failed to generate the reference image. Please try again.")
+        );
         return;
       }
 
@@ -194,7 +197,7 @@ const Critique = () => {
         onDone: () => {
           setIsLoading(false);
           if (shouldGenerateImage && assistantSoFar) {
-            generateOptimizedImage(assistantSoFar);
+            generateOptimizedImage(assistantSoFar, currentMessages);
           }
         },
         onError: (err) => {
