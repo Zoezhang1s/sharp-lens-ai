@@ -8,7 +8,7 @@ set -e  # 遇错即停
 
 APP_NAME="sharp-lens-ai"
 APP_DIR="/var/www/${APP_NAME}"
-REPO_URL="https://github.com/YOUR_GITHUB_USERNAME/sharp-lens-ai.git"
+REPO_URL="git@github.com:Zoezhang1s/sharp-lens-ai.git"
 NGINX_CONF_SOURCE="${APP_DIR}/deploy/nginx.conf"
 NGINX_CONF_TARGET="/etc/nginx/sites-available/${APP_NAME}"
 NGINX_CONF_ENABLED="/etc/nginx/sites-enabled/${APP_NAME}"
