@@ -21,6 +21,13 @@ serve(async (req) => {
       );
     }
 
+    if (!imageData || typeof imageData !== "string") {
+      return new Response(
+        JSON.stringify({ error: "reference image is required for image-to-image generation" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -31,49 +38,62 @@ serve(async (req) => {
     // a precise i2i edit instruction that fixes EVERY issue while preserving
     // the person and the location.
     const systemMsg = language === "zh"
-      ? `你是顶级摄影指导。你会同时看到【原照片】和【对它的点评】。
-任务：输出一段图生图改进指令（中文），用于在**完全保留原图人物**的前提下，重拍出更好的版本。
+      ? `你是顶级摄影总监，任务不是重新创作人物，而是基于【原照片】做严格的人像一致性图生图拍摄优化。
 
-【最高优先级 — 必须保持完全一致】
-1. 人物身份：同一张脸、五官、发型、发色、肤色、身材、年龄气质，绝不换人
-2. 服装与配饰：上衣、下装、鞋、包、首饰、眼镜全部保持一致
-3. 场景与环境：原地点不变，主要环境元素（建筑/家具/植物/道具）保留，仅允许换机位/景别/角度
+【铁律：绝不允许变化】
+1. 必须是原图同一个人：脸型、五官比例、眼睛、鼻子、嘴、眉毛、发型、发色、肤色、体型、年龄感全部一致。
+2. 必须保留原服装与配饰：衣服款式、颜色、材质、花纹、鞋、包、首饰、眼镜都不能改。
+3. 必须保留原环境：还是同一个地点与空间，只能改变拍摄角度、景别、机位、人物动作、表情、光影处理。
 
-【必须修复 — 针对点评中提到的每一个问题】
-仔细读点评，把每条缺点都对应到具体改进：
-- 构图问题 → 新的构图（黄金分割/三分法/留白方向/景别）
-- 光线问题 → 新的光线方向与质感（柔光/伦勃朗光/逆光勾边/窗光）
-- 姿势问题 → 具体新姿势（手怎么放、身体朝向、重心、与道具互动）
-- 表情问题 → 新表情/眼神方向/情绪
-- 机位问题 → 新机位高度与角度（俯/平视/仰/侧）
-- 色调问题 → 新色调氛围（冷/暖/胶片颗粒/对比度）
-- 背景杂乱 → 如何避开（虚化/换角度避开/利用前景遮挡）
+【严禁出现】
+- 换脸、变成另一个人、脸部重绘成陌生长相
+- 改衣服、改发型、改身材、改年龄、改性别
+- 跳到完全不同的场景
 
-【输出格式】
-- 第一句先写硬性身份/场景锁定声明
-- 然后一段连贯描述：构图 → 机位 → 姿势 → 表情 → 光线 → 色调
-- 不超过250字，只输出提示词本体，不要标题和解释`
-      : `You are a top-tier photo director. You see [the original photo] and [a critique of it].
-Output an image-to-image edit instruction that re-shoots the photo while STRICTLY preserving the person and location.
+【你的任务】
+严格根据点评里指出的全部问题，逐项修复，输出一段用于图生图的中文提示词，让生成结果成为“同一个人、同一身衣服、同一环境下的更优拍法示范图”。
 
-[Highest priority — must stay identical]
-1. Identity: same face, features, hairstyle, hair color, skin tone, body — never replace the person
-2. Wardrobe & accessories: same top, bottom, shoes, bag, jewelry, glasses
-3. Scene & environment: same location and key elements, only change angle/framing
+【修复维度】
+- 构图问题 → 明确新构图
+- 光线问题 → 明确补光/主光/轮廓光方向和质感
+- 姿势问题 → 给出具体动作与身体朝向
+- 表情问题 → 给出明确情绪和眼神
+- 机位问题 → 给出机位高度和镜头视角
+- 背景问题 → 通过角度/虚化/前景遮挡解决
 
-[Must fix — map every critique issue to a concrete change]
-- Composition → new framing (rule of thirds / negative space / shot size)
-- Lighting → new direction & quality (soft / Rembrandt / rim / window)
-- Pose → specific new pose (hands, body orientation, weight, interaction)
-- Expression → new expression / gaze / mood
-- Camera angle → new height & angle (high / eye-level / low / side)
-- Color tone → new mood (cool / warm / film grain / contrast)
-- Cluttered background → how to avoid (bokeh / new angle / foreground)
+【输出要求】
+- 直接输出提示词本体，不要解释
+- 先写一句强约束：必须保持原图同一人物、同一服装、同一环境
+- 再继续写如何把点评里的所有问题都改好
+- 不超过260字`
+      : `You are a top-tier photography director. Your job is NOT to redesign the subject. Your job is strict identity-preserving image-to-image optimization based on the original photo.
 
-[Format]
-- First sentence: hard identity + location lock
-- Then one cohesive paragraph: composition → angle → pose → expression → lighting → tone
-- Under 250 words. ONLY the prompt, no headings, no explanations.`;
+[Non-negotiable rules]
+1. It must remain the exact same person: same facial structure, facial features, eyes, nose, mouth, brows, hairstyle, hair color, skin tone, body shape, and age impression.
+2. It must keep the exact same clothing and accessories: same outfit, colors, materials, patterns, shoes, bag, jewelry, glasses.
+3. It must stay in the same environment: same place and same major scene elements, only changing camera angle, framing, pose, expression, and lighting.
+
+[Strictly forbidden]
+- changing the face or turning the subject into a different person
+- changing clothes, hairstyle, body shape, age, or gender
+- moving to a completely different environment
+
+[Your task]
+Based on the critique, fix every identified problem and output one concise image-to-image instruction that produces an ideal “same person, same outfit, same environment, but photographed much better” reference image.
+
+[Repair dimensions]
+- composition
+- lighting
+- pose
+- expression
+- camera angle
+- background cleanup through angle/bokeh/foreground
+
+[Output]
+- prompt only, no explanation
+- first state the hard lock that it must keep the same person, same outfit, same environment
+- then describe how to fix all critique issues
+- under 260 words`;
 
     const promptGenResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -114,9 +134,12 @@ Output an image-to-image edit instruction that re-shoots the photo while STRICTL
 
     // Reinforce identity-lock at prompt level (belt-and-suspenders)
     const identityLock = language === "zh"
-      ? "【保持原图人物完全一致：同一张脸、同一个发型、同一套服装、同一个身材，不要换人；保持原场景，仅优化姿势/构图/光线/色调/机位角度】"
-      : "[Keep the SAME person from the reference image: same face, same hairstyle, same outfit, same body — DO NOT replace the person. Keep the same location. Only improve pose/composition/lighting/color/angle.]";
-    imagePrompt = `${identityLock} ${imagePrompt}`;
+      ? "【绝对锁定原图人物与服装：必须是同一张脸、同一五官、同一发型发色、同一肤色、同一身材、同一套衣服和配饰；严禁换人、严禁变脸、严禁改衣服；必须保留同一环境，只能优化动作、表情、构图、光线和机位】"
+      : "[ABSOLUTE IDENTITY AND WARDROBE LOCK: keep the exact same face, same facial features, same hairstyle and hair color, same skin tone, same body shape, same outfit and accessories. DO NOT change the person, DO NOT alter the face, DO NOT change clothing. Keep the same environment and only improve pose, expression, composition, lighting, and camera angle.]";
+    const negativeLock = language === "zh"
+      ? "负面约束：禁止新人物，禁止陌生脸，禁止韩式网红脸，禁止改变五官比例，禁止改变发型服装，禁止换场景。"
+      : "Negative constraints: no new person, no different face, no beautified replacement face, no changed facial proportions, no changed hairstyle or outfit, no different location.";
+    imagePrompt = `${identityLock} ${negativeLock} ${imagePrompt}`;
 
     console.log("Generated image prompt:", imagePrompt);
 
@@ -129,6 +152,7 @@ Output an image-to-image edit instruction that re-shoots the photo while STRICTL
       size: "1080x1920",
       stream: false,
       watermark: false,
+      seed: 1,
     };
 
     // Doubao Seedream 4.0 expects `image` as an array of URLs/data URIs for i2i
