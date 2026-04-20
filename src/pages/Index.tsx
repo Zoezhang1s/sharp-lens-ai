@@ -74,7 +74,7 @@ const Index = () => {
         </div>
 
         {/* Subtitle */}
-        <p className="text-center text-muted-foreground text-sm max-w-sm leading-relaxed">
+        <p className="text-center text-muted-foreground text-sm max-w-sm leading-relaxed px-4 sm:px-0">
           {t(
             "上传你的人像照片，接受全网最毒舌、最专业的AI摄影锐评。准备好被骂了吗？",
             "Upload your portrait photo for the most brutally honest AI photography critique. Ready to get roasted?"
