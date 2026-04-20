@@ -114,6 +114,20 @@ const Critique = () => {
   };
 
   const generateOptimizedImage = async (critiqueText: string) => {
+    // Fallback: pull from the most recent user message if state is empty
+    // (can happen when restoring from history or after navigation).
+    const refImage =
+      imageData ||
+      [...messages].reverse().find((m) => m.role === "user" && m.imageData)?.imageData ||
+      null;
+
+    if (!refImage) {
+      toast.error(
+        t("缺少原图，无法生成参考图，请重新上传照片", "Missing original photo. Please upload a new photo to generate a reference.")
+      );
+      return;
+    }
+
     setIsGeneratingImage(true);
     try {
       const resp = await fetch(GENERATE_IMAGE_URL, {
@@ -124,7 +138,7 @@ const Critique = () => {
         },
         body: JSON.stringify({
           prompt: critiqueText,
-          imageData: imageData,
+          imageData: refImage,
           language: lang === "zh" ? "zh" : "en",
         }),
       });
