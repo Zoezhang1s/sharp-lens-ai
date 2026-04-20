@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Upload, Aperture, Sparkles, ArrowRight } from "lucide-react";
 import logoImg from "@/assets/logo.png";
+import { downscaleImage, fileToDataUrl } from "@/lib/imageUtils";
+import { toast } from "sonner";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -11,15 +13,23 @@ const Index = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!file.type.startsWith("image/")) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const imageData = reader.result as string;
-        sessionStorage.setItem("critique-image", imageData);
+      try {
+        const raw = await fileToDataUrl(file);
+        const compressed = await downscaleImage(raw, 1600, 0.85);
+        try {
+          sessionStorage.setItem("critique-image", compressed);
+        } catch {
+          // Fall back to a smaller size if still too large
+          const smaller = await downscaleImage(raw, 1024, 0.75);
+          sessionStorage.setItem("critique-image", smaller);
+        }
         navigate("/critique");
-      };
-      reader.readAsDataURL(file);
+      } catch (e) {
+        console.error(e);
+        toast.error("图片处理失败，请换一张试试");
+      }
     },
     [navigate]
   );
