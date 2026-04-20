@@ -1,14 +1,13 @@
 #!/bin/bash
 # =================================================================
 # Sharp Lens AI 一键部署脚本 (Ubuntu 24)
-# 用法: ./deploy.sh
+# 用法: sudo ./deploy.sh
 # =================================================================
 
 set -e  # 遇错即停
 
 APP_NAME="sharp-lens-ai"
 APP_DIR="/var/www/${APP_NAME}"
-REPO_URL="git@github.com:Zoezhang1s/sharp-lens-ai.git"
 NGINX_CONF_SOURCE="${APP_DIR}/deploy/nginx.conf"
 NGINX_CONF_TARGET="/etc/nginx/sites-available/${APP_NAME}"
 NGINX_CONF_ENABLED="/etc/nginx/sites-enabled/${APP_NAME}"
@@ -31,45 +30,33 @@ check_root() {
     fi
 }
 
-# 1. 进入应用目录，不存在则克隆
-setup_directory() {
-    log_info "检查应用目录..."
+# 1. 检查并安装 Node.js
+check_nodejs() {
+    log_info "检查 Node.js..."
 
-    if [[ ! -d "${APP_DIR}" ]]; then
-        log_info "首次部署，正在克隆代码..."
-        git clone "${REPO_URL}" "${APP_DIR}"
+    if ! command -v node &> /dev/null; then
+        log_info "安装 Node.js 20..."
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        apt-get install -y nodejs
     else
-        log_info "更新代码..."
-        cd "${APP_DIR}"
-        git pull origin main
+        log_info "Node.js 已安装: $(node -v)"
     fi
 }
 
 # 2. 安装依赖 & 构建
 build_project() {
-    log_info "安装依赖..."
+    log_info "安装依赖并构建..."
     cd "${APP_DIR}"
 
-    # 检查 Node.js 是否安装
-    if ! command -v node &> /dev/null; then
-        log_info "安装 Node.js 20..."
-        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-        apt-get install -y nodejs
-    fi
+    # 清除旧依赖避免版本冲突
+    rm -rf node_modules package-lock.json
 
-    # 检查 pnpm 是否安装，没有则用 npm
-    if ! command -v pnpm &> /dev/null; then
-        log_info "安装 pnpm..."
-        npm install -g pnpm
-    fi
-
-    # 安装项目依赖（清除旧依赖避免版本冲突）
-    rm -rf node_modules pnpm-lock.yaml
-    pnpm install
+    # 安装依赖
+    npm install
 
     # 构建
     log_info "开始构建..."
-    pnpm run build
+    npm run build
 
     log_info "构建完成，产物位于 dist/ 目录"
 }
@@ -115,7 +102,7 @@ main() {
     log_info "========================================="
 
     check_root
-    setup_directory
+    check_nodejs
     build_project
     configure_nginx
     setup_firewall
