@@ -235,12 +235,13 @@ const Critique = () => {
     }
   };
 
-  const handleNewPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = reader.result as string;
+    try {
+      const { fileToDataUrl, downscaleImage } = await import("@/lib/imageUtils");
+      const raw = await fileToDataUrl(file);
+      const img = await downscaleImage(raw, 1600, 0.85);
       setImageData(img);
       const userMsg: Message = {
         role: "user",
@@ -250,8 +251,10 @@ const Critique = () => {
       const newMessages = [...messages, userMsg];
       setMessages(newMessages);
       triggerCritique(newMessages, true);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      toast.error(t("图片处理失败", "Image processing failed"));
+    }
   };
 
   const renderMarkdownLine = (line: string, j: number) => {
