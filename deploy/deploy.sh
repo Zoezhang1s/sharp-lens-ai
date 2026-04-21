@@ -1,6 +1,6 @@
 #!/bin/bash
 # =================================================================
-# Sharp Lens AI 一键部署脚本 (Ubuntu 24)
+# Sharp Lens AI 构建脚本 (Ubuntu 24)
 # 用法: sudo ./deploy.sh
 # =================================================================
 
@@ -8,9 +8,6 @@ set -e  # 遇错即停
 
 APP_NAME="sharp-lens-ai"
 APP_DIR="/var/www/${APP_NAME}"
-NGINX_CONF_SOURCE="${APP_DIR}/deploy/nginx.conf"
-NGINX_CONF_TARGET="/etc/nginx/sites-available/${APP_NAME}"
-NGINX_CONF_ENABLED="/etc/nginx/sites-enabled/${APP_NAME}"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -61,55 +58,18 @@ build_project() {
     log_info "构建完成，产物位于 dist/ 目录"
 }
 
-# 3. 配置 Nginx
-configure_nginx() {
-    log_info "配置 Nginx..."
-
-    # 复制 Nginx 配置
-    cp "${NGINX_CONF_SOURCE}" "${NGINX_CONF_TARGET}"
-
-    # 检查配置语法
-    nginx -t
-
-    # 启用站点（创建软链接，移除旧的）
-    ln -sf "${NGINX_CONF_TARGET}" "${NGINX_CONF_ENABLED}"
-
-    # 移除默认站点（如果存在）
-    rm -f /etc/nginx/sites-enabled/default
-
-    # 重载 Nginx
-    systemctl reload nginx
-
-    log_info "Nginx 配置完成"
-}
-
-# 4. 防火墙设置
-setup_firewall() {
-    log_info "配置防火墙..."
-
-    # 检查 ufw 是否可用
-    if command -v ufw &> /dev/null; then
-        ufw --force enable
-        ufw allow 'Nginx Full'
-        log_info "防火墙已配置 (UFW)"
-    fi
-}
-
 # 主流程
 main() {
     log_info "========================================="
-    log_info "  ${APP_NAME} 一键部署开始"
+    log_info "  ${APP_NAME} 构建开始"
     log_info "========================================="
 
     check_root
     check_nodejs
     build_project
-    configure_nginx
-    setup_firewall
 
     log_info "========================================="
-    log_info "  部署完成！"
-    log_info "  访问: http://$(hostname -I | awk '{print $1}')"
+    log_info "  构建完成！"
     log_info "========================================="
 }
 
