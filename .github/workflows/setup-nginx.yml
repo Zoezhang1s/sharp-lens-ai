@@ -16,7 +16,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT || '22' }}
           script: |
-            # 配置 Nginx
+            systemctl enable --now nginx
             ln -sf /var/www/sharp-lens-ai/deploy/nginx.conf /etc/nginx/sites-available/sharp-lens-ai
             ln -sf /etc/nginx/sites-available/sharp-lens-ai /etc/nginx/sites-enabled/
             rm -f /etc/nginx/sites-enabled/default
