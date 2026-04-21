@@ -40,6 +40,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
+          path: ./dist
+
+      - name: Show files
+        run: ls -la dist/
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
