@@ -8,7 +8,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy Nginx config to server
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Nginx config via SCP
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          target: /etc/nginx/sites-enabled/
+          source: ./deploy/nginx.conf
+
+      - name: Configure Nginx
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -17,7 +30,5 @@ jobs:
           port: ${{ secrets.SERVER_PORT || '22' }}
           script: |
             systemctl enable --now nginx
-            ln -sf /var/www/sharp-lens-ai/deploy/nginx.conf /etc/nginx/sites-available/sharp-lens-ai
-            ln -sf /etc/nginx/sites-available/sharp-lens-ai /etc/nginx/sites-enabled/
             rm -f /etc/nginx/sites-enabled/default
             nginx -t && systemctl reload nginx
