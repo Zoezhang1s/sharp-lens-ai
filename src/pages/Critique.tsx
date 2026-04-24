@@ -934,34 +934,23 @@ const Critique = () => {
     const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
     if (!assistantMsg) return "";
 
-    // Try to find a sharp/funny line from the actual critique content
-    // Look for keywords that indicate a punchy summary line
     const lines = assistantMsg.content.split("\n");
 
-    // Find lines that seem like impactful summary statements
-    for (const line of lines) {
+    const headerIndex = lines.findIndex((line) => {
       const trimmed = line.trim();
-      // Skip headers, tables, empty lines
-      if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
+      return trimmed.includes("一句话暴击") || trimmed.includes("Opening Roast");
+    });
 
-      // Look for lines with 暴击/致命/问题/建议 keywords that are short
-      if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 60) {
-        // Clean markdown
-        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+    if (headerIndex !== -1) {
+      for (let i = headerIndex + 1; i < lines.length; i += 1) {
+        const trimmed = lines[i].trim();
+        if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("|") || trimmed.startsWith("---")) continue;
+        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "").trim();
         if (cleaned.length > 5) return cleaned;
+        if (trimmed.includes("。") || trimmed.includes("!") || trimmed.includes("！")) break;
       }
     }
 
-    // Extract the first meaningful sentence from 快速诊断 or similar sections
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if ((trimmed.includes("诊断") || trimmed.includes("问题") || trimmed.includes("总结")) && trimmed.length < 80) {
-        const cleaned = trimmed.replace(/\*\*/g, "").replace(/^.*?[：:]\s*/, "");
-        if (cleaned.length > 10) return cleaned;
-      }
-    }
-
-    // Fallback: extract first short paragraph
     let paragraph = "";
     for (const line of lines) {
       const trimmed = line.trim();
