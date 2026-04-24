@@ -713,10 +713,10 @@ const Critique = () => {
       return linkParts.map((seg, si) => {
         const linkMatch = seg.match(/^\[(.*?)\]\((.*?)\)$/);
         if (linkMatch) {
-          const searchLink = getSearchLink(linkMatch[1]);
+          // Use the actual URL from the markdown link, not a fallback Google search
           return (
-            <a key={si} href={searchLink} target="_blank" rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">
+            <a key={si} href={linkMatch[2]} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors no-underline">
               {linkMatch[1]}
             </a>
           );
