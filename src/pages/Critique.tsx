@@ -1342,24 +1342,35 @@ const Critique = () => {
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("群友锐评", "Group Critique")}
               </h3>
-              {personas.map((persona, i) => (
-                <Card key={i} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-sm text-foreground">{persona.name}</span>
-                      <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                        {persona.style}
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
-                    {persona.translation && (
-                      <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
-                        {persona.translation}
-                      </p>
-                    )}
+              {personas.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-4 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    <span className="text-xs text-muted-foreground">
+                      {t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
+                    </span>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                personas.map((persona, i) => (
+                  <Card key={i} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-bold text-sm text-foreground">{persona.name}</span>
+                        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                          {persona.style}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
+                      {persona.translation && (
+                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
+                          {persona.translation}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
 
             {/* 5. Collapsible Detailed Critique */}
