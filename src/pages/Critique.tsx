@@ -51,6 +51,7 @@ const Critique = () => {
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [showSimplified, setShowSimplified] = useState(false);
   const [fromHistory, setFromHistory] = useState(false);
+  const critiqueStartedRef = useRef(false);
   const [personas] = useState<Persona[]>([
     {
       name: "王思聪",
@@ -129,9 +130,22 @@ const Critique = () => {
 
   // Auto-retry critique with exponential backoff
   const triggerCritiqueWithRetry = async (currentMessages: Message[], shouldGenerateImage: boolean, retryCount = 0) => {
+    // Guard: don't start if already loaded or no messages
+    if (!currentMessages || currentMessages.length === 0) {
+      console.error("[Critique] No messages to send");
+      return;
+    }
+    if (messages.some(m => m.role === "assistant" && !m.generatedImage)) {
+      console.log("[Critique] Already has assistant response, skipping");
+      return;
+    }
+    if (critiqueStartedRef.current) {
+      console.log("[Critique] Critique already started, skipping");
+      return;
+    }
+    critiqueStartedRef.current = true;
     setIsLoading(true);
     let assistantSoFar = "";
-    let lastError = "";
 
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
@@ -148,22 +162,26 @@ const Critique = () => {
     };
 
     try {
+      const apiMsgs = buildApiMessages(currentMessages);
+      console.log("[Critique] Calling API with", apiMsgs.length, "messages, retry:", retryCount);
+
       await streamChat({
-        messages: buildApiMessages(currentMessages),
+        messages: apiMsgs,
         language: lang === "zh" ? "zh" : "en",
         onDelta: upsertAssistant,
         onDone: () => {
+          console.log("[Critique] streamChat done, generating image:", shouldGenerateImage);
           setIsLoading(false);
           if (shouldGenerateImage && assistantSoFar) {
             generateOptimizedImage(assistantSoFar, currentMessages);
           }
         },
         onError: (err) => {
-          lastError = err;
-          console.error("Critique error:", err);
+          console.error("[Critique] API error:", err, "retryCount:", retryCount);
           // Auto-retry on failure with delay
           if (retryCount < 3) {
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, max 10s
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+            console.log("[Critique] Scheduling retry in", delay, "ms");
             setTimeout(() => {
               triggerCritiqueWithRetry(currentMessages, shouldGenerateImage, retryCount + 1);
             }, delay);
@@ -174,7 +192,7 @@ const Critique = () => {
         },
       });
     } catch (e) {
-      console.error(e);
+      console.error("[Critique] Exception:", e, "retryCount:", retryCount);
       // Auto-retry on exception
       if (retryCount < 3) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
@@ -191,7 +209,7 @@ const Critique = () => {
   // Check for in-progress critique on mount
   useEffect(() => {
     const inProgress = sessionStorage.getItem("critique-in-progress");
-    if (inProgress && !searchParams.get("history")) {
+    if (inProgress && !searchParams.get("history") && !critiqueStartedRef.current) {
       const { imageData: storedImage, messages: storedMessages, historyId: storedHid } = JSON.parse(inProgress);
       if (storedImage && storedMessages.length > 0) {
         setImageData(storedImage);
@@ -199,6 +217,7 @@ const Critique = () => {
         setHistoryId(storedHid);
         // Resume the critique if it was interrupted
         if (!storedMessages.some(m => m.role === "assistant")) {
+          critiqueStartedRef.current = true;
           triggerCritique(storedMessages, true);
         }
         sessionStorage.removeItem("critique-in-progress");
@@ -317,6 +336,9 @@ const Critique = () => {
   };
 
   const triggerCritique = async (currentMessages: Message[], shouldGenerateImage: boolean) => {
+    if (!currentMessages || currentMessages.length === 0) return;
+    if (critiqueStartedRef.current) return;
+    critiqueStartedRef.current = true;
     setIsLoading(true);
     let assistantSoFar = "";
 
