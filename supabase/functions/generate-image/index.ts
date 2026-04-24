@@ -38,62 +38,66 @@ serve(async (req) => {
     // a precise i2i edit instruction that fixes EVERY issue while preserving
     // the person and the location.
     const systemMsg = language === "zh"
-      ? `你是顶级摄影总监，任务不是重新创作人物，而是基于【原照片】做严格的人像一致性图生图拍摄优化。
+      ? `你是顶级人像摄影总监。任务：基于【原照片】生成一段图生图(i2i)中文提示词，让结果成为"同一个人、同一身衣服、同一环境下，但拍得更好"的示范图。
 
-【铁律：绝不允许变化】
-1. 必须是原图同一个人：脸型、五官比例、眼睛、鼻子、嘴、眉毛、发型、发色、肤色、体型、年龄感全部一致。
-2. 必须保留原服装与配饰：衣服款式、颜色、材质、花纹、鞋、包、首饰、眼镜都不能改。
-3. 必须保留原环境：还是同一个地点与空间，只能改变拍摄角度、景别、机位、人物动作、表情、光影处理。
+【铁律一：人物完全一致，不能像但要"是同一个人"】
+- 必须 100% 保留原图人物的脸：脸型、五官比例、眼睛形状和颜色、鼻型、嘴型、眉形、肤色、痣/雀斑、年龄感、发型、发色、发长。
+- 不允许任何"美化换脸""韩式整容脸""网红脸""AI默认脸"。
+- 必须保留原服装、配饰、鞋包、首饰、眼镜的款式、颜色、材质、花纹。
+- 必须保留原环境/同一地点/同一主要场景元素。
 
-【严禁出现】
-- 换脸、变成另一个人、脸部重绘成陌生长相
+【铁律二：放大原照片的气质和优点】
+- 先在心里识别这张照片本来就有的气质（例如：清冷、文艺、慵懒、英气、可爱、复古、酷飒、自然清新、电影感等）以及它本身做对的地方（例如：色调统一、构图干净、光线柔和等）。
+- 在 i2i 提示词里**继续放大这种气质**，让它更纯粹、更高级，而不是换成另一种风格。
+  · 清冷 → 进一步强调冷调高级灰、留白、克制表情、安静氛围
+  · 文艺 → 强调胶片颗粒、柔光、自然姿态、生活化构图
+  · 酷飒 → 强调硬光、对比度、利落姿态、低角度
+  · 复古 → 强调暖调、颗粒、年代色彩
+- **保留并强化原图本来就好的部分**，不要把原本的优点抹掉。
+
+【铁律三：把详细锐评里指出的所有缺点都修掉】
+逐项修复：构图、光线、姿势、表情、机位、背景、色彩、焦段。每一条建议都要落到提示词里。
+
+【严禁】
+- 换脸、变成另一个人、改五官比例
 - 改衣服、改发型、改身材、改年龄、改性别
-- 跳到完全不同的场景
+- 跳到完全不同的场景或风格
+- 套用千篇一律的"AI网红脸+暖调奶油色"
 
-【你的任务】
-严格根据点评里指出的全部问题，逐项修复，输出一段用于图生图的中文提示词，让生成结果成为“同一个人、同一身衣服、同一环境下的更优拍法示范图”。
+【输出】
+- 直接输出最终的中文 i2i 提示词，不要解释，不要分点。
+- 第一句必须是身份锁：明确写"必须是原图同一人，同一张脸，同一身衣服，同一环境"。
+- 第二句写要放大的气质和保留的优点。
+- 接下来按"构图 / 光线 / 姿势 / 表情 / 机位 / 背景 / 色彩"顺序，把锐评里指出的问题逐条改好。
+- 总长度 200–320 字。`
+      : `You are a top portrait photography director. Task: based on the [original photo], write one Chinese-style image-to-image prompt so the result is "the same person, same outfit, same environment, but photographed much better".
 
-【修复维度】
-- 构图问题 → 明确新构图
-- 光线问题 → 明确补光/主光/轮廓光方向和质感
-- 姿势问题 → 给出具体动作与身体朝向
-- 表情问题 → 给出明确情绪和眼神
-- 机位问题 → 给出机位高度和镜头视角
-- 背景问题 → 通过角度/虚化/前景遮挡解决
+[Rule 1: identity lock — must be the SAME person, not just "similar"]
+- Keep 100% of the original face: face shape, feature proportions, eye shape and color, nose, mouth, brows, skin tone, moles/freckles, age, hairstyle, hair color, hair length.
+- No beautified face, no generic AI face, no influencer face.
+- Keep the exact outfit, accessories, shoes, bag, jewelry, glasses (style, color, material, pattern).
+- Keep the same environment / location / major scene elements.
 
-【输出要求】
-- 直接输出提示词本体，不要解释
-- 先写一句强约束：必须保持原图同一人物、同一服装、同一环境
-- 再继续写如何把点评里的所有问题都改好
-- 不超过260字`
-      : `You are a top-tier photography director. Your job is NOT to redesign the subject. Your job is strict identity-preserving image-to-image optimization based on the original photo.
+[Rule 2: amplify the original mood and the things it already does well]
+- First identify the mood the photo already has (e.g. cool/aloof, artsy, lazy, sharp, cute, retro, edgy, fresh, cinematic) and what it already does right (e.g. unified palette, clean composition, soft light).
+- In the prompt, **push that same mood further** — make it purer and more refined. Do NOT swap to a different style.
+- Preserve and strengthen the strong points of the original — do not erase them.
 
-[Non-negotiable rules]
-1. It must remain the exact same person: same facial structure, facial features, eyes, nose, mouth, brows, hairstyle, hair color, skin tone, body shape, and age impression.
-2. It must keep the exact same clothing and accessories: same outfit, colors, materials, patterns, shoes, bag, jewelry, glasses.
-3. It must stay in the same environment: same place and same major scene elements, only changing camera angle, framing, pose, expression, and lighting.
+[Rule 3: fix every flaw the critique listed]
+Address composition, lighting, pose, expression, camera angle, background, color, focal length one by one.
 
-[Strictly forbidden]
-- changing the face or turning the subject into a different person
-- changing clothes, hairstyle, body shape, age, or gender
-- moving to a completely different environment
-
-[Your task]
-Based on the critique, fix every identified problem and output one concise image-to-image instruction that produces an ideal “same person, same outfit, same environment, but photographed much better” reference image.
-
-[Repair dimensions]
-- composition
-- lighting
-- pose
-- expression
-- camera angle
-- background cleanup through angle/bokeh/foreground
+[Forbidden]
+- New face, different person, changed feature proportions
+- Changed clothes, hair, body, age, gender
+- Different scene or different style
+- Generic "AI influencer face + warm cream tone"
 
 [Output]
-- prompt only, no explanation
-- first state the hard lock that it must keep the same person, same outfit, same environment
-- then describe how to fix all critique issues
-- under 260 words`;
+- Output only the final i2i prompt, no explanation, no bullet points.
+- First sentence must be the identity lock: same person, same face, same outfit, same environment.
+- Second sentence: which mood to amplify and which strengths to keep.
+- Then in order — composition / lighting / pose / expression / angle / background / color — fix each issue from the critique.
+- 200–320 words total.`;
 
     const promptGenResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -104,7 +108,7 @@ Based on the critique, fix every identified problem and output one concise image
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           messages: [
             { role: "system", content: systemMsg },
             {
@@ -134,11 +138,11 @@ Based on the critique, fix every identified problem and output one concise image
 
     // Reinforce identity-lock at prompt level (belt-and-suspenders)
     const identityLock = language === "zh"
-      ? "【绝对锁定原图人物与服装：必须是同一张脸、同一五官、同一发型发色、同一肤色、同一身材、同一套衣服和配饰；严禁换人、严禁变脸、严禁改衣服；必须保留同一环境，只能优化动作、表情、构图、光线和机位】"
-      : "[ABSOLUTE IDENTITY AND WARDROBE LOCK: keep the exact same face, same facial features, same hairstyle and hair color, same skin tone, same body shape, same outfit and accessories. DO NOT change the person, DO NOT alter the face, DO NOT change clothing. Keep the same environment and only improve pose, expression, composition, lighting, and camera angle.]";
+      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境。在此基础上放大原图本来就有的气质和优点，再修复点评里指出的所有缺点。"
+      : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same features, same hair, same skin tone, same body, same age, same outfit, same environment. Amplify the original mood and strengths, then fix every flaw the critique mentioned.";
     const negativeLock = language === "zh"
-      ? "负面约束：禁止新人物，禁止陌生脸，禁止韩式网红脸，禁止改变五官比例，禁止改变发型服装，禁止换场景。"
-      : "Negative constraints: no new person, no different face, no beautified replacement face, no changed facial proportions, no changed hairstyle or outfit, no different location.";
+      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止千篇一律的奶油暖调。"
+      : "Negative: no face swap, no different person, no beautified influencer face, no altered features, no changed hair or outfit, no different scene, no generic warm cream tone.";
     imagePrompt = `${identityLock} ${negativeLock} ${imagePrompt}`;
 
     console.log("Generated image prompt:", imagePrompt);
