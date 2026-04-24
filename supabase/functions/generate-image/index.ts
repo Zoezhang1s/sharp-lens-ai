@@ -189,13 +189,13 @@ Address composition, lighting, pose, expression, camera angle, background, color
 
     if (!imagePrompt) throw new Error("Empty image prompt generated");
 
-    // Reinforce identity-lock at prompt level (belt-and-suspenders)
+    // Reinforce identity-lock + face-sharpness + must-improve at prompt level
     const identityLock = language === "zh"
-      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境，同一镜头视角范围与画幅比例。在此基础上放大原图本来就有的气质和优点，再修复点评里指出的所有缺点。"
-      : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same features, same hair, same skin tone, same body, same age, same outfit, same environment. Amplify the original mood and strengths, then fix every flaw the critique mentioned.";
+      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境，同一镜头视角范围与画幅比例。【人脸锐度锁】：人脸必须高清清晰锐利，对焦点落在眼睛上，皮肤纹理自然，绝不能模糊、变形、糊脸、双眼不对称、塑料感。【优化要求】：在保持以上一致性的前提下，必须按照点评修正构图/光线/姿势/表情/机位/背景/色彩，输出图必须比原图明显更好看更专业，绝不能与原图几乎一样。"
+      : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same features, same hair, same skin tone, same body, same age, same outfit, same environment. [FACE SHARPNESS LOCK]: face must be sharp, high-resolution, eyes in focus, natural skin texture — never blurry, distorted, asymmetric, or plastic. [IMPROVEMENT REQUIRED]: while keeping identity, you MUST fix composition, lighting, pose, expression, angle, background, and color per the critique. The output must look visibly better and more professional than the original, never near-identical.";
     const negativeLock = language === "zh"
-      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止把补光灯/灯架/穿帮器材/杂乱路人加入画面、禁止千篇一律的奶油暖调。"
-      : "Negative: no face swap, no different person, no beautified influencer face, no altered features, no changed hair or outfit, no different scene, no generic warm cream tone.";
+      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止把补光灯/灯架/穿帮器材/杂乱路人加入画面、禁止千篇一律的奶油暖调、禁止模糊脸/变形脸/糊五官/塑料皮肤/磨皮过度、禁止输出和原图几乎一样的结果（必须按点评做出明显改进）。"
+      : "Negative: no face swap, no different person, no beautified influencer face, no altered features, no changed hair or outfit, no different scene, no lights/equipment/bystanders, no generic warm cream tone, no blurry/distorted face, no plastic over-smoothed skin, no output that looks essentially identical to the original (must show clear improvements per the critique).";
     imagePrompt = `${identityLock} ${negativeLock} ${imagePrompt}`;
 
     console.log("Generated image prompt:", imagePrompt);
@@ -213,7 +213,8 @@ Address composition, lighting, pose, expression, camera angle, background, color
       size: `${normalizedWidth}x${normalizedHeight}`,
       stream: false,
       watermark: false,
-      seed: 1,
+      // Random seed each call so the model actually explores improvements rather than echoing the input
+      seed: Math.floor(Math.random() * 2_147_483_647),
     };
 
     // Doubao Seedream 4.0 expects `image` as an array of URLs/data URIs for i2i
