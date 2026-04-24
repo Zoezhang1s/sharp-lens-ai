@@ -1089,14 +1089,14 @@ const Critique = () => {
         box-sizing: border-box;
       `;
 
-      // Logo with speech bubble in bottom right
+      // Logo with small speech bubble in bottom right (compact)
       const logoBubble = document.createElement("div");
-      logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10;";
+      logoBubble.style.cssText = "position: absolute; bottom: 16px; right: 16px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 4px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <div style="background: #f59e0b; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
           烂片一张~
         </div>
-        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
+        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
       `;
       captureDiv.appendChild(logoBubble);
 
