@@ -84,42 +84,48 @@ export function generateTitle(text: string, lang: string): string {
   const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
 
   // Theme detection with multiple aliases — picks the FIRST matching theme by AI critique content
-  const themeAliases: { theme: string; aliases: string[] }[] = [
-    { theme: "自拍", aliases: ["自拍", "selfie"] },
-    { theme: "人像", aliases: ["人像", "肖像", "portrait", "人物照"] },
-    { theme: "美食", aliases: ["美食", "食物", "菜品", "餐厅", "food", "dish", "蛋糕", "饮料", "咖啡", "甜品"] },
-    { theme: "夜景", aliases: ["夜景", "夜拍", "night", "霓虹", "夜晚"] },
-    { theme: "宠物", aliases: ["宠物", "猫咪", "狗子", "pet", "cat", "dog"] },
-    { theme: "儿童", aliases: ["儿童", "小孩", "孩子", "宝宝", "child", "kid"] },
-    { theme: "海边", aliases: ["海边", "海滩", "海岸", "beach", "ocean"] },
-    { theme: "森林", aliases: ["森林", "树林", "森系", "forest"] },
-    { theme: "校园", aliases: ["校园", "教室", "校服", "campus"] },
-    { theme: "街拍", aliases: ["街拍", "扫街", "街头", "street"] },
-    { theme: "风景", aliases: ["风景", "山景", "landscape", "scenery"] },
-    { theme: "建筑", aliases: ["建筑", "城市", "architecture"] },
-    { theme: "旅行", aliases: ["旅行", "旅游", "travel", "打卡"] },
-    { theme: "穿搭", aliases: ["穿搭", "outfit", "ootd", "搭配"] },
+  const themeAliases: { theme: string; emoji: string; aliases: string[] }[] = [
+    { theme: "自拍", emoji: "🤳", aliases: ["自拍", "selfie"] },
+    { theme: "人像", emoji: "👤", aliases: ["人像", "肖像", "portrait", "人物照"] },
+    { theme: "美食", emoji: "🍜", aliases: ["美食", "食物", "菜品", "餐厅", "food", "dish", "蛋糕", "饮料", "咖啡", "甜品"] },
+    { theme: "夜景", emoji: "🌃", aliases: ["夜景", "夜拍", "night", "霓虹", "夜晚"] },
+    { theme: "宠物", emoji: "🐾", aliases: ["宠物", "猫咪", "狗子", "pet", "cat", "dog"] },
+    { theme: "儿童", emoji: "🧒", aliases: ["儿童", "小孩", "孩子", "宝宝", "child", "kid"] },
+    { theme: "海边", emoji: "🌊", aliases: ["海边", "海滩", "海岸", "beach", "ocean"] },
+    { theme: "森林", emoji: "🌲", aliases: ["森林", "树林", "森系", "forest"] },
+    { theme: "校园", emoji: "🎒", aliases: ["校园", "教室", "校服", "campus"] },
+    { theme: "街拍", emoji: "🚶", aliases: ["街拍", "扫街", "街头", "street"] },
+    { theme: "风景", emoji: "🏞️", aliases: ["风景", "山景", "landscape", "scenery"] },
+    { theme: "建筑", emoji: "🏛️", aliases: ["建筑", "城市", "architecture"] },
+    { theme: "旅行", emoji: "✈️", aliases: ["旅行", "旅游", "travel", "打卡"] },
+    { theme: "穿搭", emoji: "👗", aliases: ["穿搭", "outfit", "ootd", "搭配"] },
+    { theme: "花卉", emoji: "🌸", aliases: ["花", "花卉", "flower", "花朵"] },
+    { theme: "天空", emoji: "☁️", aliases: ["天空", "云", "晚霞", "日落", "sunset", "sky"] },
+    { theme: "婚纱", emoji: "👰", aliases: ["婚纱", "婚礼", "wedding"] },
+    { theme: "证件照", emoji: "🪪", aliases: ["证件照", "id photo", "工牌"] },
   ];
 
   let detectedTheme = "";
-  for (const { theme, aliases } of themeAliases) {
+  let detectedEmoji = "";
+  for (const { theme, emoji, aliases } of themeAliases) {
     if (aliases.some(a => lower.includes(a.toLowerCase()))) {
       detectedTheme = theme;
+      detectedEmoji = emoji;
       break;
     }
   }
 
   if (detectedTheme) {
     const roastByTier = (s: number): string[] => {
-      if (s >= 85) return ["神图就位", "原地封神", "封面级出片", "杀疯了"];
-      if (s >= 70) return ["稳的可以发圈", "有点东西", "在线水平", "能打"];
-      if (s >= 50) return ["勉强及格", "凑合能看", "中规中矩", "再练练"];
-      if (s >= 30) return ["拍了个寂寞", "废片预警", "翻车现场", "审美告急"];
-      return ["建议删除", "灾难现场", "辣眼睛预警", "毁图一张"];
+      if (s >= 90) return ["原地封神", "神图就位", "封面级出片", "杀疯了", "直接出道"];
+      if (s >= 75) return ["稳的可以发圈", "有点东西", "在线水平", "能打", "审美在线"];
+      if (s >= 55) return ["勉强能看", "凑合及格", "中规中矩", "再练练", "差点意思"];
+      if (s >= 35) return ["拍了个寂寞", "废片预警", "翻车现场", "审美告急", "灵魂歪了"];
+      return ["建议删除", "灾难现场", "辣眼睛预警", "毁图一张", "已被判死刑"];
     };
     const pool = roastByTier(score || 50);
     const tag = pool[Math.floor(Math.random() * pool.length)];
-    return `${detectedTheme} · ${tag}`;
+    return `${detectedEmoji} ${detectedTheme} · ${tag}`;
   }
 
   // Detect photo themes

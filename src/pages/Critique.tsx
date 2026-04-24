@@ -1089,14 +1089,14 @@ const Critique = () => {
         box-sizing: border-box;
       `;
 
-      // Logo with speech bubble in bottom right
+      // Logo with small speech bubble in bottom right (compact)
       const logoBubble = document.createElement("div");
-      logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10;";
+      logoBubble.style.cssText = "position: absolute; bottom: 16px; right: 16px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 4px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <div style="background: #f59e0b; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
           烂片一张~
         </div>
-        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
+        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
       `;
       captureDiv.appendChild(logoBubble);
 
@@ -1205,20 +1205,65 @@ const Critique = () => {
       });
       captureDiv.appendChild(groupSection);
 
-      // Detailed Critique Sections
+      // Detailed Critique Sections — preserve highlights, skip "学习参考"/"Reference" sections
       if (assistantMsg) {
         const sections = parseCritiqueSections(assistantMsg.content);
-        if (sections.length > 0) {
+        const filteredSections = sections.filter((s) => {
+          const t = s.title;
+          // Skip one-liner/score (already shown above) and learning/reference sections
+          return !(
+            t.includes("一句话暴击") ||
+            t.includes("一句话总结") ||
+            t.includes("Opening Roast") ||
+            t.includes("One-liner") ||
+            t.includes("评分") ||
+            t.includes("Score") ||
+            t.includes("学习参考") ||
+            t.includes("学习") ||
+            t.includes("参考") ||
+            t.toLowerCase().includes("learning") ||
+            t.toLowerCase().includes("reference") ||
+            t.toLowerCase().includes("resource")
+          );
+        });
+
+        // Highlight key phrases (mirror UI keyPhrases) and escape HTML safely
+        const keyPhrases = [
+          "建议","重点","关键","必须","一定","不要","避免","提高","改善","加强","注意","调整","改变",
+          "构图","光线","曝光","对焦","白平衡","色彩","姿势","表情","背景","光圈","快门",
+          "ISO","焦段","角度","机位","时段",
+        ];
+        const escapeHtml = (s: string) => s
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+        const highlightHtml = (raw: string) => {
+          const cleaned = cleanForDownload(raw);
+          return cleaned
+            .split("\n")
+            .map((line) => {
+              if (!line.trim()) return "";
+              let html = escapeHtml(line);
+              for (const phrase of keyPhrases) {
+                const regex = new RegExp(`(${phrase}[^，。,.\\n]{0,40})`, "g");
+                html = html.replace(regex, '<strong style="color:#f59e0b;font-weight:600;">$1</strong>');
+              }
+              return html;
+            })
+            .filter(Boolean)
+            .join("<br/>");
+        };
+
+        if (filteredSections.length > 0) {
           const detailedSection = document.createElement("div");
           detailedSection.style.cssText = "margin-top: 20px;";
           detailedSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">详细锐评</div>`;
 
-          sections.forEach(section => {
+          filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
             sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${cleanForDownload(section.title)}</div>
-              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${cleanForDownload(section.content).replace(/\n/g, '<br/>')}</div>
+              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
@@ -1228,7 +1273,7 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
+      footerEl.style.cssText = "text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 60px;";
       footerEl.innerHTML = `
         <div style="font-size: 12px; color: #555;">由 AI 提供 · 你拍的啥</div>
       `;
@@ -1347,11 +1392,19 @@ const Critique = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
-                    <img
-                      src={imageData!}
-                      alt="Original"
-                      className="w-full rounded-lg object-contain"
-                    />
+                    <div
+                      className="relative group cursor-pointer"
+                      onClick={() => setZoomedImage(imageData!)}
+                    >
+                      <img
+                        src={imageData!}
+                        alt="Original"
+                        className="w-full rounded-lg object-contain"
+                      />
+                      <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <ZoomIn className="w-5 h-5 text-foreground" />
+                      </div>
+                    </div>
                   </div>
                   {messages.some(m => m.generatedImage) ? (
                     <div>
@@ -1359,11 +1412,22 @@ const Critique = () => {
                         <Sparkles className="w-3 h-3 text-primary" />
                         {t("AI优化", "AI Optimized")}
                       </p>
-                      <img
-                        src={messages.find(m => m.generatedImage)?.generatedImage}
-                        alt="AI Generated"
-                        className="w-full rounded-lg object-contain"
-                      />
+                      <div
+                        className="relative group cursor-pointer"
+                        onClick={() => {
+                          const url = messages.find(m => m.generatedImage)?.generatedImage;
+                          if (url) setZoomedImage(url);
+                        }}
+                      >
+                        <img
+                          src={messages.find(m => m.generatedImage)?.generatedImage}
+                          alt="AI Generated"
+                          className="w-full rounded-lg object-contain"
+                        />
+                        <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <ZoomIn className="w-5 h-5 text-foreground" />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg">
