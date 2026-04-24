@@ -1056,19 +1056,38 @@ const Critique = () => {
       `;
       captureDiv.appendChild(headerEl);
 
+      // Convert any cross-origin image URL to a data URL so html2canvas can render it
+      const toDataUrl = async (url: string): Promise<string> => {
+        if (url.startsWith("data:")) return url;
+        try {
+          const resp = await fetch(url, { mode: "cors" });
+          const blob = await resp.blob();
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (err) {
+          console.warn("toDataUrl failed, using original url", err);
+          return url;
+        }
+      };
+
       // Image Comparison: Original vs AI Reference
       const imageSection = document.createElement("div");
       imageSection.style.cssText = "margin-bottom: 30px;";
       if (generatedImageMsg?.generatedImage) {
+        const aiImgData = await toDataUrl(generatedImageMsg.generatedImage);
         imageSection.innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">原图</div>
-              <img src="${imageData}" style="width: 100%; border-radius: 12px;" />
+              <img src="${imageData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
             </div>
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">✨ AI优化参考</div>
-              <img src="${generatedImageMsg.generatedImage}" style="width: 100%; border-radius: 12px;" />
+              <img src="${aiImgData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
             </div>
           </div>
         `;
@@ -1155,6 +1174,19 @@ const Critique = () => {
       captureDiv.appendChild(footerEl);
 
       document.body.appendChild(captureDiv);
+
+      // Wait for all images inside captureDiv to finish loading before snapshot
+      const allImgs = Array.from(captureDiv.querySelectorAll("img"));
+      await Promise.all(
+        allImgs.map((img) =>
+          img.complete && img.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise<void>((res) => {
+                img.addEventListener("load", () => res(), { once: true });
+                img.addEventListener("error", () => res(), { once: true });
+              })
+        )
+      );
 
       const canvas = await html2canvas(captureDiv, {
         backgroundColor: "#0a0a0f",
@@ -1310,24 +1342,35 @@ const Critique = () => {
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("群友锐评", "Group Critique")}
               </h3>
-              {personas.map((persona, i) => (
-                <Card key={i} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-sm text-foreground">{persona.name}</span>
-                      <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                        {persona.style}
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
-                    {persona.translation && (
-                      <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
-                        {persona.translation}
-                      </p>
-                    )}
+              {personas.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-4 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    <span className="text-xs text-muted-foreground">
+                      {t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
+                    </span>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                personas.map((persona, i) => (
+                  <Card key={i} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-bold text-sm text-foreground">{persona.name}</span>
+                        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                          {persona.style}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
+                      {persona.translation && (
+                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
+                          {persona.translation}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
 
             {/* 5. Collapsible Detailed Critique */}
@@ -1398,6 +1441,54 @@ const Critique = () => {
                   })}
               </div>
             )}
+
+            {/* 6. Follow-up Q&A — show messages AFTER the first assistant critique */}
+            {(() => {
+              const firstAssistantIdx = messages.findIndex(
+                (m) => m.role === "assistant" && !m.generatedImage
+              );
+              if (firstAssistantIdx === -1) return null;
+              const followUps = messages.slice(firstAssistantIdx + 1).filter(
+                (m) => !m.generatedImage
+              );
+              if (followUps.length === 0 && !isLoading) return null;
+              return (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t("继续聊聊", "Keep Chatting")}
+                  </h3>
+                  {followUps.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[90%] rounded-2xl px-4 py-3 ${
+                          msg.role === "user"
+                            ? "bg-primary/10 border border-primary/20 text-foreground"
+                            : "glass-card text-foreground"
+                        }`}
+                      >
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {msg.content.split("\n").map((line, j) => renderMarkdownLine(line, j))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {isLoading && followUps.length > 0 && (
+                    <div className="flex justify-start">
+                      <div className="glass-card px-4 py-3 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        <span className="text-sm text-muted-foreground">
+                          {t("正在思考中...", "Thinking...")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              );
+            })()}
           </div>
         </div>
       ) : (
