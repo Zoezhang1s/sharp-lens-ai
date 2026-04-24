@@ -469,13 +469,27 @@ const Critique = () => {
       const assistantMsgs = messages.filter(m => m.role === "assistant" && !m.generatedImage);
       const lastAssistant = assistantMsgs[assistantMsgs.length - 1]?.content || "";
       const score = extractScoreFromText(assistantMsgs.map(m => m.content).join("\n"));
-      const title = generateTitle(lastAssistant, lang);
       const summary = lastAssistant.replace(/[#*>\n]/g, " ").trim().slice(0, 100);
 
-      // Always update the existing record
-      updateRecord(historyId, { messages, score, title, summary });
+      // Don't overwrite the AI-generated title once it's set
+      const updates: any = { messages, score, summary };
+      if (titleDoneForHistoryRef.current !== historyId) {
+        updates.title = generateTitle(lastAssistant, lang);
+      }
+      updateRecord(historyId, updates);
+
+      // Trigger AI title once the critique looks complete (has score + multiple sections)
+      if (
+        !isLoading &&
+        lastAssistant &&
+        score > 0 &&
+        titleDoneForHistoryRef.current !== historyId &&
+        !titleFetchingRef.current
+      ) {
+        fetchAITitle(lastAssistant, imageData, historyId);
+      }
     }, 1000);
-  }, [messages, historyId]);
+  }, [messages, historyId, isLoading]);
 
   // Persist in-progress critique to sessionStorage for recovery
   useEffect(() => {
