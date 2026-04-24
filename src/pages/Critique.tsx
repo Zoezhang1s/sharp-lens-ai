@@ -55,48 +55,153 @@ const Critique = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [, setFromHistory] = useState(false);
   const critiqueStartedRef = useRef(false);
-  const [personas] = useState<Persona[]>([
-    {
-      name: "陈漫",
-      avatar: "",
-      style: "时尚摄影师",
-      critique: "从时尚摄影角度，这张的构图和用光都有提升空间。建议找到主体最自信的角度，让光线为肤色服务，而不是简单照亮。"
-    },
-    {
-      name: "张艺谋",
-      avatar: "",
-      style: "电影导演",
-      critique: "摄影是光影的艺术，你这张平了。好的照片要有视觉重心，光线要有主次关系。建议研究一下戏剧性用光，让照片有故事感。"
-    },
-    {
-      name: "森山大道",
-      avatar: "",
-      style: "街头摄影师",
-      critique: "ストリート写真は空気感だ。この作品はもう少し生命力があればなお良くなる。",
-      translation: "街头摄影讲究氛围感，你这幅作品如果能再多一点生命力会更棒。",
-      lang: "ja"
-    },
-    {
-      name: "Annie Leibovitz",
-      avatar: "",
-      style: "人像摄影大师",
-      critique: "The key to portrait photography is capturing the subject's essence. Your subject seems a bit stiff. Try to create a relaxed atmosphere and capture genuine expressions.",
-      translation: "人像摄影的关键是捕捉拍摄对象的本质。你的拍摄对象看起来有点僵硬。试着营造轻松的氛围，捕捉自然的表情。",
-      lang: "en"
-    },
-    {
-      name: "何炅",
-      avatar: "",
-      style: "主持人",
-      critique: "拍照和主持一样，要有'眼'。你这张照片的问题在于观众（镜头）不知道该看哪里。建议明确视觉焦点，让主体更突出。"
-    },
-    {
-      name: "蔡康永",
-      avatar: "",
-      style: "主持人/作家",
-      critique: "我说一个暴击啊——你这张照片没有记忆点。好的照片看一眼就能记住，这张看三眼都记不住。问题出在：构图太满，没有呼吸感。"
+  const [personas, setPersonas] = useState<Persona[]>([]);
+
+  // Generate dynamic personas based on critique theme
+  const generateDynamicPersonas = (critiqueText: string): Persona[] => {
+    const text = critiqueText.toLowerCase();
+    const personas: Persona[] = [];
+
+    // Detect photo themes
+    const isOutdoor = text.includes("户外") || text.includes("室外") || text.includes("大自然");
+    const isPortrait = text.includes("人像") || text.includes("肖像") || text.includes("自拍");
+    const isStreet = text.includes("街头") || text.includes("街拍") || text.includes("城市");
+    const isIndoor = text.includes("室内") || text.includes("家居") || text.includes("咖啡");
+    const isNight = text.includes("夜景") || text.includes("夜晚") || text.includes("灯光");
+    const isFood = text.includes("美食") || text.includes("食物") || text.includes("餐厅");
+    const isPet = text.includes("宠物") || text.includes("猫") || text.includes("狗");
+    const isKid = text.includes("儿童") || text.includes("小孩") || text.includes("宝宝");
+    const isNature = text.includes("森林") || text.includes("花草") || text.includes("植物") || text.includes("海边") || text.includes("沙滩");
+    const isTravel = text.includes("旅行") || text.includes("旅游") || text.includes("风景");
+    const isCute = text.includes("可爱") || text.includes("萌") || text.includes("小清新");
+
+    // Theme-specific persona pools
+    const themePersonas: { theme: string; personas: Persona[] }[] = [
+      {
+        theme: "户外",
+        personas: [
+          { name: "丁真", avatar: "", style: "理塘旅游大使", critique: "这个背景太普通了嘛，我们理塘的蓝天白云不比这好看？下次来拍，我给你当导游！", lang: "zh" },
+          { name: "贝爷", avatar: "", style: "野外生存专家", critique: "户外摄影最重要的是和自然互动，你这背景跟游客打卡照没区别。找到那个让人'哇'的瞬间！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "人像",
+        personas: [
+          { name: "旺财", avatar: "", style: "专业舔狗", critique: "汪！这个人看起来心情不错，但拍照表情太僵了！主人说笑容要发自内心，你这个假笑太明显了！", lang: "zh" },
+          { name: "石原里美", avatar: "", style: "日系女神", critique: "自拍角度很重要呢～这个光线把脸拍大了哦。下次试试从上面斜着拍，会更显脸小呢！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "街头",
+        personas: [
+          { name: "森山大道", avatar: "", style: "街头摄影大师", critique: "ストリート写真は決意だ。この作品はうーん、もう少し空気感があればな。", translation: "街头摄影需要决心。这张嘛...如果再多点氛围感就好了。", lang: "ja" },
+          { name: "五条悟", avatar: "", style: "最强法师", critique: "この写真、少しだけ物足りないな。次はもっと大胆に構図を決めてくれ！", translation: "这张照片有点不够味啊。下次构图再大胆一点！", lang: "ja" },
+        ]
+      },
+      {
+        theme: "室内",
+        personas: [
+          { name: "泡澡小黄鸭", avatar: "", style: "浴室哲学家", critique: "嘎嘎！室内拍照最重要的是光线，你这角度让整个人都暗沉了。要向窗户那边靠，让自然光照亮你！", lang: "zh" },
+          { name: "二足鸦", avatar: "", style: "室内风水师", critique: "室内摄影讲究的是空间感，你这构图让房间显得逼仄。试试把手机抬高一点，俯拍会显得空间更大！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "夜景",
+        personas: [
+          { name: "赛博朋克2077", avatar: "", style: "夜之城居民", critique: "Night city is dark, but your photo is darker. 夜景需要灯光，你这拍出来黑漆漆一片！找个光源拍会好很多！", lang: "en" },
+          { name: "梵高", avatar: "", style: "后印象派画家", critique: "星空的夜晚应该有星星般的点光源。你这张夜景...夜空黑得像我的后期一样。加点灯光层次吧！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "宠物",
+        personas: [
+          { name: "韩寒", avatar: "", style: "作家/赛车手", critique: "拍宠物和写作一样，要有耐心等那个对的表情。你这张狗都拍糊了——对焦点应该在眼睛上啊！", lang: "zh" },
+          { name: "喵星人", avatar: "", style: "资深猫奴", critique: "拍猫最重要的是时机！你这张猫耳朵都耷拉下来了，明显是不想拍的状态。等它看你的时候再按快门！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "儿童",
+        personas: [
+          { name: "蜡笔小新", avatar: "", style: "5岁灵魂画家", critique: "妈妈说小孩子拍照要自然！你这个pose太大人了啦～小孩子就要动起来拍才能抓到最真实的表情！", lang: "zh" },
+          { name: "龙猫", avatar: "", style: "森林精灵", critique: "小孩子拍照最重要的是安全感和开心。你这表情太紧张了啦！下次买点零食哄一哄再拍～", lang: "zh" },
+        ]
+      },
+      {
+        theme: "可爱",
+        personas: [
+          { name: "可达鸭", avatar: "", style: "呆萌哲学家", critique: "嘎嘎嘎～这个pose太刻意了啦！可爱就是要自然不做作，你看我就往那一站就萌翻了！", lang: "zh" },
+          { name: "琳娜贝尔", avatar: "", style: "迪士尼公主", critique: "拍照就是要开心！你这个笑得太用力了啦～自然甜美的笑容才是最美的呢！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "美食",
+        personas: [
+          { name: "孤独的美食家", avatar: "", style: "五郎大叔", critique: "这道菜拍得...让我食欲都减少了三分。美食摄影要突出热气和人味儿，你这冷冰冰的没感觉。", lang: "zh" },
+          { name: "悟里", avatar: "", style: "米其林大厨", critique: "摆盘是美食的灵魂，你这张把菜拍得像外卖小哥送的盒饭。从45度角俯拍，光线打在这道菜上！", lang: "zh" },
+        ]
+      },
+      {
+        theme: "旅行",
+        personas: [
+          { name: "徐霞客", avatar: "", style: "明代旅行家", critique: "旅行摄影讲究的是'我在场'。你这是打卡照，不是旅行照！下次试着让人融入风景，而不是站在风景前面。", lang: "zh" },
+          { name: "安室透", avatar: "", style: "旅游特工", critique: "旅行照片的背景选择很重要！你这个人融不进风景啦，要找那种能让人一眼认出'啊这是某地'的机位！", lang: "zh" },
+        ]
+      },
+    ];
+
+    // Default personas for any theme
+    const defaultPersonas: Persona[] = [
+      { name: "张三丰", avatar: "", style: "扫地老僧", critique: "你这照片嘛...构图太满，不够透气。武林高手讲究留白，摄影也是同理。回去再练练吧。", lang: "zh" },
+      { name: "小当家", avatar: "", style: "中华一番", critique: "摄影和做菜一样，讲究色香味俱全！你这张照片'卖相'不行，让人看了没胃口。", lang: "zh" },
+      { name: "鲁迅", avatar: "", style: "文学巨匠", critique: "我素来不轻易评价图片，但这张嘛...确实是需要再多练习的。进步的秘诀是多看多拍。", lang: "zh" },
+    ];
+
+    // Pick personas based on detected themes
+    if (isOutdoor || isNature || isTravel) {
+      personas.push(...themePersonas.find(tp => tp.theme === "户外")!.personas);
     }
-  ]);
+    if (isPortrait || isCute) {
+      personas.push(...themePersonas.find(tp => tp.theme === "人像")!.personas);
+    }
+    if (isStreet) {
+      personas.push(...themePersonas.find(tp => tp.theme === "街头")!.personas);
+    }
+    if (isIndoor) {
+      personas.push(...themePersonas.find(tp => tp.theme === "室内")!.personas);
+    }
+    if (isNight) {
+      personas.push(...themePersonas.find(tp => tp.theme === "夜景")!.personas);
+    }
+    if (isPet) {
+      personas.push(...themePersonas.find(tp => tp.theme === "宠物")!.personas);
+    }
+    if (isKid) {
+      personas.push(...themePersonas.find(tp => tp.theme === "儿童")!.personas);
+    }
+    if (isCute) {
+      personas.push(...themePersonas.find(tp => tp.theme === "可爱")!.personas);
+    }
+    if (isFood) {
+      personas.push(...themePersonas.find(tp => tp.theme === "美食")!.personas);
+    }
+
+    // Always add some default personas
+    personas.push(...defaultPersonas.slice(0, 3));
+
+    // Shuffle and pick 4-5 personas
+    const shuffled = personas.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 5);
+  };
+
+  // Update personas when critique is ready
+  useEffect(() => {
+    if (messages.some(m => m.role === "assistant" && !m.generatedImage)) {
+      const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
+      if (assistantMsg && personas.length === 0) {
+        setPersonas(generateDynamicPersonas(assistantMsg.content));
+      }
+    }
+  }, [messages, personas.length]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const critiqueContentRef = useRef<HTMLDivElement>(null);
@@ -284,6 +389,41 @@ const Critique = () => {
       }
     }
   }, [messages, imageData, historyId]);
+
+  // Poll for updates when viewing in-progress critique from history
+  useEffect(() => {
+    if (!historyId) return;
+
+    const pollInterval = setInterval(() => {
+      // Check if we have a complete critique now
+      if (messages.some(m => m.role === "assistant" && !m.generatedImage)) {
+        clearInterval(pollInterval);
+        return;
+      }
+
+      // Reload from localStorage to check for updates
+      const records = JSON.parse(localStorage.getItem("photo-critique-history") || "[]");
+      const updatedRecord = records.find((r: any) => r.id === historyId);
+
+      if (updatedRecord && updatedRecord.messages.some((m: any) => m.role === "assistant")) {
+        // New content arrived! Update state
+        const userMsgWithImage = updatedRecord.messages.find((m: any) => m.role === "user" && m.imageData);
+        if (userMsgWithImage) {
+          setImageData(userMsgWithImage.imageData);
+        }
+        setMessages(updatedRecord.messages);
+
+        // If critique just completed, trigger retry to ensure we have the latest
+        if (!critiqueStartedRef.current) {
+          critiqueStartedRef.current = true;
+          triggerCritiqueWithRetry(updatedRecord.messages as Message[], true);
+        }
+        clearInterval(pollInterval);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [historyId, messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -656,12 +796,88 @@ const Critique = () => {
     </>
   );
 
-  // Extract one-liner critique - brutal and direct
+  // Extract one-liner critique - brutal, direct, and theme-specific
   const getOneLinerCritique = () => {
     const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
     if (!assistantMsg) return "";
-    const content = assistantMsg.content;
-    // Extract score first
+    const content = assistantMsg.content.toLowerCase();
+
+    // Detect photo themes for specific roasts
+    const themes: { keyword: string; roasts: string[]; good: string[] }[] = [
+      {
+        keyword: "人像",
+        roasts: ["这张人像，表情僵得像游客照", "拍人像最重要的表情，你这个跟证件照似的", "人像摄影讲究神态，你这像个木头人"],
+        good: ["人像能拍成这样，算你有点东西", "这表情抓得不错，有点灵魂"]
+      },
+      {
+        keyword: "自拍",
+        roasts: ["自拍最重要的是角度，你这角度把自己拍成大饼脸了", "美颜开太大了吧，原相机拍出来估计吓死人", "自拍要的是自然，你这假笑太明显了"],
+        good: ["这个自拍角度绝了，很显脸小", "美得刚刚好，不假"]
+      },
+      {
+        keyword: "风景",
+        roasts: ["风景照拍成到此一游照了", "这构图，风光大片秒变游客打卡", "风景美但你拍得丑，浪费了"],
+        good: ["这风景照有内味了", "大片感出来了"]
+      },
+      {
+        keyword: "美食",
+        roasts: ["美食被你拍成剩菜了", "这摆盘这光线，食欲瞬间没了", "拍美食不讲究光线，你这跟拍外卖似的"],
+        good: ["这美食拍得让人流口水", "有点东西，食欲被勾起来了"]
+      },
+      {
+        keyword: "夜景",
+        roasts: ["夜景拍成夜魇了，黑得瘆人", "灯光呢？全是黑乎乎一片", "夜景没灯光就是黑一片，你这很真实地反映了问题"],
+        good: ["夜景氛围感拉满了", "有点霓虹都市那味了"]
+      },
+      {
+        keyword: "宠物",
+        roasts: ["狗都拍糊了，对焦点应该在眼睛上", "猫都不看你，拍了个寂寞", "宠物摄影要抓拍，你这全是摆拍"],
+        good: ["抓到了！狗狗最可爱的那一瞬", "猫咪灵魂出窍被抓到了"]
+      },
+      {
+        keyword: "儿童",
+        roasts: ["小孩子表情管理失败", "抓拍变摆拍，摆拍变僵硬", "拍小孩最重要的是自然，你这像拍证件照"],
+        good: ["天真的笑容被记录下来了", "抓到了自然的表情，很真实"]
+      },
+      {
+        keyword: "街头",
+        roasts: ["街头摄影要有故事，你这像扫街敷衍", "决定性瞬间没抓到，全是废片", "街拍要有内味，你这个太普通了"],
+        good: ["有人文气息了，不错", "扫街扫出品味来了"]
+      },
+      {
+        keyword: "海边",
+        roasts: ["海边的浪漫被你拍成阴天了", "沙滩拍成沙坑了，蓝天呢？", "海风、沙滩、夕阳，你这拍成了澡堂"],
+        good: ["有海岛度假的感觉了", "海边写真的味道出来了"]
+      },
+      {
+        keyword: "森林",
+        roasts: ["森林被你拍得像路边绿化带", "小清新变成了阴间滤镜", "绿植拍得跟背景板似的，没层次"],
+        good: ["森林系小姐姐的感觉有了", "氧气感十足"]
+      },
+      {
+        keyword: "校园",
+        roasts: ["校园小清新变成了乡土风", "校服照拍成了淘宝风", "青春感全无，像毕业证件照"],
+        good: ["青春校园感拿捏了", "有那年的感觉了"]
+      },
+    ];
+
+    // Find matching theme
+    for (const theme of themes) {
+      if (content.includes(theme.keyword)) {
+        const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+        const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+
+        if (score >= 80) {
+          return theme.good[Math.floor(Math.random() * theme.good.length)];
+        } else if (score >= 50) {
+          return theme.roasts[Math.floor(Math.random() * theme.roasts.length)].replace("这", "这").replace("你", "你");
+        } else {
+          return theme.roasts[Math.floor(Math.random() * theme.roasts.length)];
+        }
+      }
+    }
+
+    // Fallback to score-based roasts
     const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
     const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
 
@@ -675,7 +891,6 @@ const Critique = () => {
 
     const lines = content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("---"));
     const firstLine = lines[0] || "";
-    // Make it more brutal
     if (firstLine.includes("不错") || firstLine.includes("很好")) return firstLine.slice(0, 30);
     if (firstLine.includes("一般") || firstLine.includes("普通")) return "就...一般吧，没啥亮点。";
     if (firstLine.includes("问题") || firstLine.includes("需要")) return "问题不少，得改。";
@@ -1013,8 +1228,8 @@ const Critique = () => {
         </div>
       )}
 
-      {/* Main Content - Simplified View (always shown when critique complete) */}
-      {score !== null && (
+      {/* Main Content - Show when critique has any content (complete or in-progress) */}
+      {(score !== null || messages.some(m => m.role === "assistant")) ? (
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-lg mx-auto space-y-5">
 
@@ -1053,10 +1268,12 @@ const Critique = () => {
             </Card>
 
             {/* 2. Score */}
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-3xl font-bold text-gradient-gold">{score}</span>
-              <span className="text-muted-foreground text-sm">/ 100</span>
-            </div>
+            {score !== null && (
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-3xl font-bold text-gradient-gold">{score}</span>
+                <span className="text-muted-foreground text-sm">/ 100</span>
+              </div>
+            )}
 
             {/* 3. One-liner Critique */}
             <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
@@ -1117,10 +1334,8 @@ const Critique = () => {
             )}
           </div>
         </div>
-      )}
-
-      {/* Loading states when critique not yet complete */}
-      {score === null && (
+      ) : (
+        /* Loading states when critique not yet started or no content */
         <div ref={critiqueContentRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4 max-w-2xl mx-auto w-full">
           {messages.map((msg, i) => (
             <div

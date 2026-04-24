@@ -76,13 +76,121 @@ export function extractScoreFromText(text: string): number {
 
 export function generateTitle(text: string, lang: string): string {
   const lines = text.split("\n");
-  const fullText = text.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()🎨📱📝📐✨🔧💡❌>]/g, "");
+  const fullText = text.replace(/\*\*/g, "");
 
   // Extract score
   const scoreMatch = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
   const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
 
-  // Funny snarky titles based on score
+  // Detect photo themes
+  const themes: { keyword: string; titles: { low: string[]; mid: string[]; high: string[] } }[] = [
+    {
+      keyword: "人像",
+      titles: {
+        low: ["人像翻车现场", "表情管理失败的人像", "证件照水平的人像"],
+        mid: ["能看的人像照", "有点人像味了", "人像有待提高"],
+        high: ["绝美人像", "有灵魂的人像", "大片人像"]
+      }
+    },
+    {
+      keyword: "自拍",
+      titles: {
+        low: ["自拍翻车大赏", "大饼脸自拍", "美颜过度自拍"],
+        mid: ["及格的自拍", "角度还行", "凑合能发"],
+        high: ["神仙角度自拍", "原生相机也绝美", "点赞收割机自拍"]
+      }
+    },
+    {
+      keyword: "风景",
+      titles: {
+        low: ["游客打卡照", "风景拍成阴间风", "浪费了好风景"],
+        mid: ["及格的风景照", "有点意境了", "普通风景记录"],
+        high: ["壁纸级风景", "大片风景", "让人想去旅行的风景"]
+      }
+    },
+    {
+      keyword: "美食",
+      titles: {
+        low: ["美食拍成剩菜", "外卖照片既视感", "食欲杀手美食"],
+        mid: ["能看的美食照", "拍出了点食欲", "及格美图"],
+        high: ["让人流口水的美食", "米其林级别美食", "美食博主既视感"]
+      }
+    },
+    {
+      keyword: "夜景",
+      titles: {
+        low: ["夜景拍成夜魇", "全是黑乎乎", "灯光呢？"],
+        mid: ["有点夜景氛围了", "凑合的夜拍", "能看的夜景"],
+        high: ["霓虹都市大片", "夜景绝了", "有电影感了"]
+      }
+    },
+    {
+      keyword: "宠物",
+      titles: {
+        low: ["糊成一片的宠物", "对焦失败的宠物照", "狗子看了会沉默"],
+        mid: ["能看的宠物照", "抓到了点神态", "及格的宠物记录"],
+        high: ["狗子天使颜", "猫咪灵魂出窍", "宠物大片"]
+      }
+    },
+    {
+      keyword: "儿童",
+      titles: {
+        low: ["童年阴影照片", "小孩表情管理失败", "抓拍变摆拍失败"],
+        mid: ["凑合的儿童照", "有点童真感了", "及格的成长记录"],
+        high: ["天真的笑容绝了", "抓到了！童年感", "儿童摄影范本"]
+      }
+    },
+    {
+      keyword: "海边",
+      titles: {
+        low: ["海边拍成澡堂", "浪漫变土味", "蓝天没了只剩人"],
+        mid: ["有海边feel了", "凑合的海边照", "及格的海岸线"],
+        high: ["海边大片", "蓝天白云绝了", "度假感满满"]
+      }
+    },
+    {
+      keyword: "森林",
+      titles: {
+        low: ["小清新变阴间风", "绿植拍成背景板", "氧气感为零"],
+        mid: ["有点森林感了", "凑合的小森林", "及格的绿植照"],
+        high: ["森林精灵风", "氧气感十足", "小清新大片"]
+      }
+    },
+    {
+      keyword: "校园",
+      titles: {
+        low: ["校园小清新变土味", "校服照像淘宝风", "青春感为零"],
+        mid: ["有点校园感了", "凑合的校园照", "及格的学生照"],
+        high: ["青春校园感拿捏", "那年mv既视感", "校园大片"]
+      }
+    },
+    {
+      keyword: "街头",
+      titles: {
+        low: ["街拍变路人记录", "扫街敷衍了事", "决定性瞬间为零"],
+        mid: ["有点街拍味了", "凑合的街头摄影", "及格的街拍"],
+        high: ["有人文气息", "街头大片感", "扫街高手"]
+      }
+    },
+  ];
+
+  // Find matching theme
+  for (const theme of themes) {
+    if (fullText.toLowerCase().includes(theme.keyword)) {
+      let pool: string[];
+      if (score >= 75) pool = theme.titles.high;
+      else if (score >= 45) pool = theme.titles.mid;
+      else pool = theme.titles.low;
+
+      const title = pool[Math.floor(Math.random() * pool.length)];
+      if (score > 0) {
+        return `${title}（${score}分）`;
+      }
+      return title;
+    }
+  }
+
+  // Fallback to score-based titles
   if (score > 0) {
     if (score < 30) {
       const badTitles = [
@@ -92,7 +200,7 @@ export function generateTitle(text: string, lang: string): string {
         "建议设为手机壁纸提醒自己进步",
         "拍了个寂寞",
       ];
-      return badTitles[Math.floor(Math.random() * badTitles.length)];
+      return `${badTitles[Math.floor(Math.random() * badTitles.length)]}（${score}分）`;
     }
     if (score < 50) {
       const okTitles = [
@@ -102,7 +210,7 @@ export function generateTitle(text: string, lang: string): string {
         "摄影师的痛你不懂",
         "下次会更好的",
       ];
-      return okTitles[Math.floor(Math.random() * okTitles.length)];
+      return `${okTitles[Math.floor(Math.random() * okTitles.length)]}（${score}分）`;
     }
     if (score < 70) {
       const midTitles = [
@@ -112,7 +220,7 @@ export function generateTitle(text: string, lang: string): string {
         "普通但不算烂",
         "继续加油吧",
       ];
-      return midTitles[Math.floor(Math.random() * midTitles.length)];
+      return `${midTitles[Math.floor(Math.random() * midTitles.length)]}（${score}分）`;
     }
     if (score < 85) {
       const goodTitles = [
@@ -122,7 +230,7 @@ export function generateTitle(text: string, lang: string): string {
         "可以给朋友炫耀了",
         "摄影师小有成就",
       ];
-      return goodTitles[Math.floor(Math.random() * goodTitles.length)];
+      return `${goodTitles[Math.floor(Math.random() * goodTitles.length)]}（${score}分）`;
     }
     // 85-100
     const greatTitles = [
@@ -132,7 +240,7 @@ export function generateTitle(text: string, lang: string): string {
       "摄影师天赋异禀",
       "原地出道吧",
     ];
-    return greatTitles[Math.floor(Math.random() * greatTitles.length)];
+    return `${greatTitles[Math.floor(Math.random() * greatTitles.length)]}（${score}分）`;
   }
 
   // Fallback if no score found
