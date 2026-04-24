@@ -30,15 +30,16 @@ function compressImage(base64: string): Promise<string> {
   });
 }
 
-/** Strip heavy base64 fields from messages before persisting */
+/** Strip generatedImage from messages before persisting (keep imageData for resume) */
 function lightenForStorage(records: HistoryRecord[]): any[] {
   return records.map((r) => ({
     ...r,
     messages: r.messages.map((m) => ({
       role: m.role,
       content: m.content,
+      imageData: m.imageData,
       detectedStyleId: m.detectedStyleId,
-      // drop imageData & generatedImage to save space
+      // drop generatedImage to save space
     })),
   }));
 }
