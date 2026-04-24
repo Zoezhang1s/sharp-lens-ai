@@ -1164,7 +1164,7 @@ const Critique = () => {
       captureDiv.style.cssText = `
         position: relative;
         width: 640px;
-        padding: 44px 36px;
+        padding: 120px 36px 60px;
         background: #0a0a0f;
         color: white;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
