@@ -226,11 +226,12 @@ The "Optimization instruction" must be a Chinese high-intensity execution brief 
 - 总长度 240–380 字。`
       : `You are a top portrait director and creative stylist. Task: based on [original photo] + [analysis], write one Chinese image-to-image prompt so the result is "the same person in the same outfit, but completely re-planned and re-shot as a genuinely high-end, genuinely beautiful reference portrait".
 
-[Rule 1: lock only face + outfit, redesign EVERYTHING else]
-- **Only locked**: face (shape, proportions, eyes/nose/mouth/brows, skin tone, hair style/color/length, age, moles) + entire outfit and accessories (style, color, material, pattern, shoes, bag, jewelry, glasses).
-- **Can and MUST change drastically**: scene, location, background, composition, lighting (position/quality/color temp/time of day), pose, action, body language, expression, gaze, camera angle, focal length, framing, mood, color grading.
-- This is NOT retouching the original. It is taking the same person in the same outfit to a more suitable scene and shooting a totally different, clearly better photo.
-- If the output's scene, pose, and composition still resemble the original → it is a failure.
+[Rule 1: lock face + outfit + scene theme, redesign EVERYTHING else]
+- **Locked**: face (shape, proportions, eyes/nose/mouth/brows, skin tone, hair style/color/length, age, moles) + entire outfit and accessories (style, color, material, pattern, shoes, bag, jewelry, glasses).
+- **Scene theme MUST continue**: identify the original location type (beach / street / cafe / indoor / rooftop / park / campus / mall / home etc) — the new shot MUST stay in that same location type. **Do NOT jump to a totally unrelated location.** But within the same theme, choose a cleaner, more atmospheric, more photogenic corner, angle, or time of day — make it the "upgraded version" of the original scene.
+- **Can and MUST change drastically**: composition, lighting (position/quality/color temp/time of day), pose, action, body language, expression, gaze, camera angle, focal length, framing, mood, color grading, background details (cleaner and more layered within the same theme).
+- This is NOT retouching the original. It is taking the same person in the same outfit, staying in the same scene theme, and shooting a totally different and clearly better photo.
+- If the output's pose, composition, and lighting still resemble the original → failure. If it jumps to a totally unrelated location → also failure.
 
 [Rule 2: face must stay sharp, never blurry/distorted]
 - High-resolution face, sharp features, natural skin texture, eyes in focus.
@@ -239,27 +240,28 @@ The "Optimization instruction" must be a Chinese high-intensity execution brief 
 - No beautified face, no influencer face, no generic AI face.
 
 [Rule 3: deliver a genuinely strong photograph]
-- Pick the best direction for this outfit + person (cinematic street / retro film / editorial magazine / fresh lifestyle / moody art / sunlit airy / neon night, etc).
+- Within the original scene theme, pick the best direction for this outfit + person (cinematic street / retro film / editorial magazine / fresh lifestyle / moody art / sunlit airy / neon night, etc).
 - Design a frame with story, atmosphere, and intentional composition: clear key light, clean layered background, natural photogenic posture, vivid gaze and emotion.
 - Use professional framing: rule-of-thirds, leading lines, foreground/background depth, negative space, considered focus.
 - Real photographic quality: natural light transitions, proper depth of field, real skin texture, cinematic color.
 
 [Rule 4: completely avoid every flaw the critique listed]
-If composition was bad → use a totally different excellent composition; flat/harsh/dirty lighting → designed lighting; stiff pose → newly designed natural pose; messy background → clean atmospheric one; dull expression → vivid gaze and emotion; bad grading → new color tone. None of the original flaws may reappear.
+If composition was bad → use a totally different excellent composition; flat/harsh/dirty lighting → designed lighting; stiff pose → newly designed natural pose; messy background → cleaner atmospheric corner within the same theme; dull expression → vivid gaze and emotion; bad grading → new color tone. None of the original flaws may reappear.
 
 [Forbidden]
 - New face, different person, changed feature proportions, blurry/distorted face
 - Changed outfit style/color/pattern, changed hair, body, age, gender
-- A near-identical "lightly tweaked" output where scene/pose/composition match the original
+- Jumping to a location whose theme is unrelated to the original
+- A near-identical "lightly tweaked" output where pose/composition/lighting match the original
 - **No photo equipment or BTS in frame**: no softboxes, fill lights, light stands, reflectors, studio backdrops, tripods, cameras, microphones, gimbals, boom poles, umbrella lights, strobes, cables, crew, makeup artists, assistants, onlookers
 - **Output only the final finished photo**, never BTS / making-of / WIP
 - Generic "AI influencer face + creamy warm tone"
 
 [Output]
 - Output only the final Chinese i2i prompt as one cohesive paragraph, no explanation, no bullets.
-- First sentence: identity + outfit lock + face sharpness lock.
-- Then describe in concrete shooting language: new scene (location + mood + time), new lighting (position + quality + color temp), new pose/action (body + hands + weight), new expression/gaze, new camera (height + angle + distance), new composition (framing + foreground/background), new color tone, new focal length.
-- Must explicitly require: "result must differ completely from the original in scene/pose/composition/lighting, but keep face and outfit identical".
+- First sentence: identity + outfit lock + face sharpness lock + scene-theme continuity lock.
+- Then describe in concrete shooting language: original scene theme (must continue), upgraded background details within the same theme, new lighting (position + quality + color temp + time of day), new pose/action (body + hands + weight), new expression/gaze, new camera (height + angle + distance), new composition (framing + foreground/background), new color tone, new focal length.
+- Must explicitly require: "result must clearly differ from the original in pose/composition/lighting, but keep the original scene theme, face, and outfit identical".
 - 240–380 words total.`;
     let imagePrompt = await callLovableChat(
       LOVABLE_API_KEY,
