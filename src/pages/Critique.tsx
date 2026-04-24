@@ -849,14 +849,14 @@ const Critique = () => {
         if (trimmed.includes("。") || trimmed.includes("！") || trimmed.includes("？")) {
           elements.push(
             <p key={elements.length} className="text-sm text-foreground leading-relaxed mb-2">
-              {highlightLine(trimmed)}
+              {renderWithLinks(trimmed, `p-${elements.length}`)}
             </p>
           );
         } else {
           // Continue building current paragraph
           elements.push(
             <p key={elements.length} className="text-sm text-foreground leading-relaxed mb-1">
-              {highlightLine(trimmed)}
+              {renderWithLinks(trimmed, `p-${elements.length}`)}
             </p>
           );
         }
