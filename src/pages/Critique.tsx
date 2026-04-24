@@ -83,7 +83,9 @@ const Critique = () => {
       const record = getRecord(hid);
       if (record) {
         setHistoryId(hid);
-        setImageData(record.imageData);
+        // Get original image from messages first, fallback to compressed thumbnail
+        const userMsgWithImage = (record.messages as Message[]).find((m: any) => m.role === "user" && m.imageData);
+        setImageData(userMsgWithImage?.imageData || record.imageData);
         setMessages(record.messages as Message[]);
         // Show simplified view when entering from history
         setFromHistory(true);
