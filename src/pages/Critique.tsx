@@ -1056,19 +1056,38 @@ const Critique = () => {
       `;
       captureDiv.appendChild(headerEl);
 
+      // Convert any cross-origin image URL to a data URL so html2canvas can render it
+      const toDataUrl = async (url: string): Promise<string> => {
+        if (url.startsWith("data:")) return url;
+        try {
+          const resp = await fetch(url, { mode: "cors" });
+          const blob = await resp.blob();
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (err) {
+          console.warn("toDataUrl failed, using original url", err);
+          return url;
+        }
+      };
+
       // Image Comparison: Original vs AI Reference
       const imageSection = document.createElement("div");
       imageSection.style.cssText = "margin-bottom: 30px;";
       if (generatedImageMsg?.generatedImage) {
+        const aiImgData = await toDataUrl(generatedImageMsg.generatedImage);
         imageSection.innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">原图</div>
-              <img src="${imageData}" style="width: 100%; border-radius: 12px;" />
+              <img src="${imageData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
             </div>
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">✨ AI优化参考</div>
-              <img src="${generatedImageMsg.generatedImage}" style="width: 100%; border-radius: 12px;" />
+              <img src="${aiImgData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
             </div>
           </div>
         `;
