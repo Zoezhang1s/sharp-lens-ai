@@ -819,7 +819,7 @@ const Critique = () => {
                 <div key={ri} className="grid gap-1 text-xs py-2 px-3 hover:bg-secondary/30"
                   style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
                   {row.map((cell, ci) => (
-                    <span key={ci} className={`${ci <= 1 ? "text-center" : "text-left"}`}>{highlightLine(cell)}</span>
+                    <span key={ci} className={`${ci <= 1 ? "text-center" : "text-left"}`}>{renderWithLinks(cell, `tbl-${ri}-${ci}`)}</span>
                   ))}
                 </div>
               );
