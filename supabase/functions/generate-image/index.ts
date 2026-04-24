@@ -138,11 +138,11 @@ Address composition, lighting, pose, expression, camera angle, background, color
 
     // Reinforce identity-lock at prompt level (belt-and-suspenders)
     const identityLock = language === "zh"
-      ? "【绝对锁定原图人物与服装：必须是同一张脸、同一五官、同一发型发色、同一肤色、同一身材、同一套衣服和配饰；严禁换人、严禁变脸、严禁改衣服；必须保留同一环境，只能优化动作、表情、构图、光线和机位】"
-      : "[ABSOLUTE IDENTITY AND WARDROBE LOCK: keep the exact same face, same facial features, same hairstyle and hair color, same skin tone, same body shape, same outfit and accessories. DO NOT change the person, DO NOT alter the face, DO NOT change clothing. Keep the same environment and only improve pose, expression, composition, lighting, and camera angle.]";
+      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境。在此基础上放大原图本来就有的气质和优点，再修复点评里指出的所有缺点。"
+      : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same features, same hair, same skin tone, same body, same age, same outfit, same environment. Amplify the original mood and strengths, then fix every flaw the critique mentioned.";
     const negativeLock = language === "zh"
-      ? "负面约束：禁止新人物，禁止陌生脸，禁止韩式网红脸，禁止改变五官比例，禁止改变发型服装，禁止换场景。"
-      : "Negative constraints: no new person, no different face, no beautified replacement face, no changed facial proportions, no changed hairstyle or outfit, no different location.";
+      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止千篇一律的奶油暖调。"
+      : "Negative: no face swap, no different person, no beautified influencer face, no altered features, no changed hair or outfit, no different scene, no generic warm cream tone.";
     imagePrompt = `${identityLock} ${negativeLock} ${imagePrompt}`;
 
     console.log("Generated image prompt:", imagePrompt);
