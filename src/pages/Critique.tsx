@@ -1074,7 +1074,7 @@ const Critique = () => {
       const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
       const score = getScore();
       const oneLiner = getOneLinerCritique();
-      const generatedImageMsg = messages.find(m => m.generatedImage);
+      const generatedImageMsg = [...messages].reverse().find(m => m.generatedImage);
 
       // Create a complete long page container with dark background
       const captureDiv = document.createElement("div");
@@ -1113,7 +1113,13 @@ const Critique = () => {
       const toDataUrl = async (url: string): Promise<string> => {
         if (url.startsWith("data:")) return url;
         try {
-          const resp = await fetch(url, { mode: "cors" });
+          const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(url)}`;
+          const resp = await fetch(proxyUrl, {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          });
+          if (!resp.ok) throw new Error(`Proxy failed: ${resp.status}`);
           const blob = await resp.blob();
           return await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -1136,11 +1142,11 @@ const Critique = () => {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">原图</div>
-              <img src="${imageData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
+              <img src="${imageData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">✨ AI优化参考</div>
-              <img src="${aiImgData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
+              <img src="${aiImgData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
           </div>
         `;
@@ -1182,7 +1188,8 @@ const Critique = () => {
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
         personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px;";
-        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.6; color: #ccc;">${cleanForDownload(persona.critique)}</div>`;
+        const langColor = persona.lang === "zh" ? "#f59e0b" : persona.lang === "en" ? "#60a5fa" : persona.lang === "ja" ? "#f472b6" : persona.lang === "ko" ? "#34d399" : "#c084fc";
+        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.75; color: ${langColor};">${cleanForDownload(persona.critique)}</div>`;
         if (persona.translation) {
           critiqueHtml += `<div style="font-size: 12px; line-height: 1.6; color: #888; margin-top: 8px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">${persona.translation}</div>`;
         }
@@ -1190,6 +1197,7 @@ const Critique = () => {
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <span style="font-weight: 600; font-size: 14px; color: white;">${persona.name}</span>
             <span style="font-size: 11px; color: #888; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">${persona.style}</span>
+            <span style="font-size: 11px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 10px;">${(persona.lang || "zh").toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
