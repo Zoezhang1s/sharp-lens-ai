@@ -1227,27 +1227,52 @@ const Critique = () => {
           );
         });
 
-        // Highlight key phrases (mirror UI keyPhrases) and escape HTML safely
+        // Highlight key phrases — MUST mirror renderDetailedContent exactly so download matches UI
         const keyPhrases = [
-          "建议","重点","关键","必须","一定","不要","避免","提高","改善","加强","注意","调整","改变",
-          "构图","光线","曝光","对焦","白平衡","色彩","姿势","表情","背景","光圈","快门",
-          "ISO","焦段","角度","机位","时段",
+          "建议", "重点", "关键", "必须", "一定", "不要", "避免",
+          "提高", "改善", "加强", "注意", "调整", "改变",
+          "构图", "光线", "曝光", "对焦", "白平衡", "色彩",
+          "姿势", "表情", "背景", "光圈", "快门",
+          "ISO", "焦段", "角度", "机位", "时段",
         ];
         const escapeHtml = (s: string) => s
           .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+        // Apply same first-match-wins rule the UI uses (one phrase per "part", part < 200 chars)
+        const highlightPart = (part: string): string => {
+          const escaped = escapeHtml(part);
+          if (part.length >= 200) return escaped;
+          for (const phrase of keyPhrases) {
+            if (part.includes(phrase)) {
+              const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
+              return escaped.split(regex)
+                .map((seg, k) =>
+                  k % 2 === 1
+                    ? `<strong style="color:#f59e0b;font-weight:600;">${seg}</strong>`
+                    : seg
+                )
+                .join("");
+            }
+          }
+          return escaped;
+        };
+
         const highlightHtml = (raw: string) => {
           const cleaned = cleanForDownload(raw);
           return cleaned
             .split("\n")
             .map((line) => {
               if (!line.trim()) return "";
-              let html = escapeHtml(line);
-              for (const phrase of keyPhrases) {
-                const regex = new RegExp(`(${phrase}[^，。,.\\n]{0,40})`, "g");
-                html = html.replace(regex, '<strong style="color:#f59e0b;font-weight:700;">$1</strong>');
-              }
-              return html;
+              // Split out markdown links so they don't get highlighted, mirroring UI behavior
+              const parts = line.split(/(\[[^\]]+\]\([^)]+\))/g);
+              return parts.map((part) => {
+                const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+                if (m) {
+                  return `<span style="display:inline-block;background:rgba(245,158,11,0.18);color:#f59e0b;font-weight:600;padding:2px 10px;border-radius:999px;margin:0 2px;font-size:0.92em;">${escapeHtml(m[1])}</span>`;
+                }
+                return highlightPart(part);
+              }).join("");
             })
             .filter(Boolean)
             .join("<br/>");
