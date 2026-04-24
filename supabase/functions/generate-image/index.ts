@@ -132,14 +132,16 @@ serve(async (req) => {
 
 [Core positioning]
 - This is NOT light retouching. It is **re-planning and re-shooting** a clearly superior portrait of the same person wearing the same clothes.
-- Scene, location, background, composition, lighting, pose, action, expression, camera angle, focal length, mood — **all can change drastically**. The goal is a real, look-worthy reference photo.
-- **Only two things must stay locked: the face identity and the outfit.** Everything else should be redesigned to make this person in this outfit look as good as possible.
+- Composition, lighting, pose, action, expression, camera angle, focal length, mood, color grading — **all can change drastically**. The goal is a real, look-worthy reference photo.
+- **Scene/background must stay on the same theme**: the new shot must be an "upgraded version" of the original scene, NOT a jump to a totally unrelated location. E.g. original beach → new shot still at the beach but with a more cinematic angle/time of day; original cafe → still a cafe but a more atmospheric corner with better light; original street → same kind of street but cleaner and more cinematic. The core elements of the original location (location type, main environmental features) must continue, but it can be made cleaner, more atmospheric, and more photogenic.
+- **Only two things must stay locked**: face identity and outfit. Everything else should be redesigned to make this person in this outfit look as good as possible within the same scene theme.
 
 [Must analyze]
 1. Existing strengths (max 3, as direction hints)
 2. Specific flaws (at least 5: composition / lighting / pose / expression / background / color / camera angle)
-3. The best shooting direction for this person + this outfit: which scene, lighting, pose, mood will showcase them best
-4. How the new shot will completely avoid each flaw the critique called out
+3. Theme of the original scene (beach / street / cafe / indoor / park / rooftop / mall / campus etc) — the new shot must continue this theme but execute it better
+4. The best lighting, pose, camera angle, mood for this person + this outfit + this scene theme
+5. How the new shot will completely avoid each flaw the critique called out
 
 [Identity and outfit rules]
 - Same person, same face, same proportions, same hair, same skin tone, same age impression.
@@ -147,9 +149,9 @@ serve(async (req) => {
 - No blur, no face distortion, no asymmetric eyes, no plastic skin, no generic AI face.
 
 [What can and SHOULD change drastically]
-- Scene / background: switch to an environment that better suits the outfit's mood
+- Background details: within the same scene theme, switch to a cleaner, more layered, more atmospheric corner or angle
 - Pose / action: fully redesign into a more natural, dynamic, photogenic pose
-- Lighting: different light position, quality, time of day
+- Lighting: different light position, quality, time of day (golden hour / blue hour / soft / backlit)
 - Expression / gaze: redesign a more compelling emotion
 - Camera angle / focal length / framing: pick the best shot for this subject
 
@@ -159,7 +161,7 @@ Strengths: ...
 Flaws: ...
 Optimization instruction: ...
 
-The "Optimization instruction" must be a Chinese high-intensity execution brief specifying a new scene, new pose, new lighting, new composition, and new expression — producing a completely different but identity- and outfit-consistent high-quality reference image.`;
+The "Optimization instruction" must be a Chinese high-intensity execution brief specifying the original scene theme, an upgraded background within that same theme, new pose, new lighting, new composition, and new expression — producing a clearly different but same-themed, identity- and outfit-consistent high-quality reference image.`;
 
     const analysisResult = await callLovableChat(
       LOVABLE_API_KEY,
