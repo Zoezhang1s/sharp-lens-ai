@@ -30,7 +30,7 @@ function compressImage(base64: string): Promise<string> {
   });
 }
 
-/** Strip generatedImage from messages before persisting (keep imageData for resume) */
+/** Strip large fields where possible but keep generatedImage so the page can re-render without regenerating */
 function lightenForStorage(records: HistoryRecord[]): any[] {
   return records.map((r) => ({
     ...r,
@@ -39,7 +39,7 @@ function lightenForStorage(records: HistoryRecord[]): any[] {
       content: m.content,
       imageData: m.imageData,
       detectedStyleId: m.detectedStyleId,
-      // drop generatedImage to save space
+      generatedImage: m.generatedImage, // KEEP — needed to avoid regenerating from history
     })),
   }));
 }
