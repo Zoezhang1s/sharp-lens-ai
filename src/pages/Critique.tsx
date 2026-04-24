@@ -1295,10 +1295,10 @@ const Critique = () => {
 
           filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
-            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px;";
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin-bottom: 16px;">${escapeHtml(cleanForDownload(section.title))}</div>
-              <div style="font-size: 22px; line-height: 1.8; color: #f0f0f0;">${highlightHtml(section.content)}</div>
+              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin: 0; line-height: 1.3;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 22px; line-height: 1.7; color: #f0f0f0; margin: 0;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
