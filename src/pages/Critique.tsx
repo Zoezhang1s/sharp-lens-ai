@@ -1353,17 +1353,44 @@ const Critique = () => {
                       className="w-full rounded-lg object-contain"
                     />
                   </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
+                    <div
+                      className="relative group cursor-pointer"
+                      onClick={() => setZoomedImage(imageData!)}
+                    >
+                      <img
+                        src={imageData!}
+                        alt="Original"
+                        className="w-full rounded-lg object-contain"
+                      />
+                      <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <ZoomIn className="w-5 h-5 text-foreground" />
+                      </div>
+                    </div>
+                  </div>
                   {messages.some(m => m.generatedImage) ? (
                     <div>
                       <p className="text-xs text-muted-foreground text-center mb-2 flex items-center justify-center gap-1">
                         <Sparkles className="w-3 h-3 text-primary" />
                         {t("AI优化", "AI Optimized")}
                       </p>
-                      <img
-                        src={messages.find(m => m.generatedImage)?.generatedImage}
-                        alt="AI Generated"
-                        className="w-full rounded-lg object-contain"
-                      />
+                      <div
+                        className="relative group cursor-pointer"
+                        onClick={() => {
+                          const url = messages.find(m => m.generatedImage)?.generatedImage;
+                          if (url) setZoomedImage(url);
+                        }}
+                      >
+                        <img
+                          src={messages.find(m => m.generatedImage)?.generatedImage}
+                          alt="AI Generated"
+                          className="w-full rounded-lg object-contain"
+                        />
+                        <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <ZoomIn className="w-5 h-5 text-foreground" />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg">
