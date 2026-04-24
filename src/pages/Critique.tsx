@@ -223,13 +223,25 @@ const Critique = () => {
         // Show simplified view when entering from history
         setFromHistory(true);
 
-        // If critique is still in progress (no assistant response yet), resume it
-        const hasAssistantResponse = record.messages.some((m: any) => m.role === "assistant");
-        if (!hasAssistantResponse && record.score === 0) {
-          // Show loading state with retry message
-          setIsLoading(true);
-          // Resume the critique with auto-retry
-          triggerCritiqueWithRetry(record.messages as Message[], true);
+        // Check if critique is complete (has assistant with generatedImage) or needs retry
+        const hasCompleteResponse = record.messages.some((m: any) => m.role === "assistant" && m.generatedImage);
+        const hasPartialResponse = record.messages.some((m: any) => m.role === "assistant" && !m.generatedImage);
+
+        if (hasCompleteResponse) {
+          // Critique is complete, nothing to do
+        } else if (hasPartialResponse || !record.messages.some((m: any) => m.role === "assistant")) {
+          // Partial or no response - need to retry
+          // Clear the partial message and retry with just the user message
+          const userMsg = record.messages.find((m: any) => m.role === "user");
+          if (userMsg) {
+            setIsLoading(true);
+            // Clear messages to remove partial assistant response
+            setMessages([userMsg as Message]);
+            // Retry after a short delay to let state update
+            setTimeout(() => {
+              triggerCritiqueWithRetry([userMsg as Message], true);
+            }, 100);
+          }
         }
 
         // Auto-expand detailed view if expanded=true in URL
@@ -396,9 +408,14 @@ const Critique = () => {
   useEffect(() => {
     if (!historyId) return;
 
+    // Stop polling if we already have a complete critique
+    if (messages.some(m => m.role === "assistant" && m.generatedImage)) {
+      return;
+    }
+
     const pollInterval = setInterval(() => {
-      // Check if we have a complete critique now
-      if (messages.some(m => m.role === "assistant" && !m.generatedImage)) {
+      // Re-check - might have completed while polling
+      if (messages.some(m => m.role === "assistant" && m.generatedImage)) {
         clearInterval(pollInterval);
         return;
       }
@@ -407,19 +424,13 @@ const Critique = () => {
       const records = JSON.parse(localStorage.getItem("photo-critique-history") || "[]");
       const updatedRecord = records.find((r: any) => r.id === historyId);
 
-      if (updatedRecord && updatedRecord.messages.some((m: any) => m.role === "assistant")) {
-        // New content arrived! Update state
+      if (updatedRecord && updatedRecord.messages.some((m: any) => m.role === "assistant" && m.generatedImage)) {
+        // Complete response arrived in localStorage! Update state
         const userMsgWithImage = updatedRecord.messages.find((m: any) => m.role === "user" && m.imageData);
         if (userMsgWithImage) {
           setImageData(userMsgWithImage.imageData);
         }
         setMessages(updatedRecord.messages);
-
-        // If critique just completed, trigger retry to ensure we have the latest
-        if (!critiqueStartedRef.current) {
-          critiqueStartedRef.current = true;
-          triggerCritiqueWithRetry(updatedRecord.messages as Message[], true);
-        }
         clearInterval(pollInterval);
       }
     }, 3000); // Poll every 3 seconds
