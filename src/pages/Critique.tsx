@@ -54,22 +54,22 @@ const Critique = () => {
   const critiqueStartedRef = useRef(false);
   const [personas] = useState<Persona[]>([
     {
-      name: "王思聪",
+      name: "陈漫",
       avatar: "",
-      style: "娱乐圈纪委书记",
-      critique: "哎呦，这拍的啥玩意儿？一看就是美颜滤镜开满了，连亲妈都认不出来。你说你花这功夫修图，不如找个好摄影师给你好好拍一张。拿得出手吗？发朋友圈都嫌丢人。"
+      style: "时尚摄影师",
+      critique: "从摄影角度看，这张的构图和用光还有提升空间。好的时尚摄影要让人一眼记住，你这张太平淡了。试着找一个有趣的角度，让光线为你的主体服务，而不是简单地照亮。"
     },
     {
-      name: "张艺谋",
+      name: "韩寒",
       avatar: "",
-      style: "国师级导演",
-      critique: "摄影是光影的艺术，你这光打得跟恐怖片似的。构图太满，留白都没有，显得局促。色彩也不行，要么太艳俗要么发灰。我拍电影讲究个氛围感，你这个嘛……回头给你发个参考片，自己体会。"
+      style: "作家/导演",
+      critique: "拍照这事儿，个性比技术重要。你这张感觉太安全了，没有自己的态度。下次拍摄前先问问自己：我想表达什么？想要什么情绪？带着问题按快门，而不是机械地记录。"
     },
     {
-      name: "方文山",
+      name: "刘雯",
       avatar: "",
-      style: "顶级词作家",
-      critique: "你这照片啊，就像一首没有韵脚的诗，少了点意境。画面是死的，灵魂是空的。好的照片会说话，你这张哑巴了。下次拍的时候想着，你要表达什么故事，再按快门。"
+      style: "国际超模",
+      critique: "作为模特，我太懂一个好的拍摄状态有多重要了。你这张表情有点僵，肩膀也太紧。放松下来，找到自己最自信的角度。好的照片是摄影师和模特一起完成的，互相信任才能出好片。"
     }
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -848,33 +848,63 @@ const Critique = () => {
         </div>
       </div>
 
-      {/* Simplified View - Default view when critique is complete */}
+      {/* Simplified View - shown when critique is complete (from history or after upload) */}
       {(showSimplified || score !== null) && score !== null && (
         <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="max-w-lg mx-auto space-y-6">
+          <div className="max-w-lg mx-auto space-y-5">
+
             {/* Back to Full Button */}
             <Button variant="ghost" onClick={() => setShowSimplified(false)} className="mb-2">
               <ArrowLeft className="w-4 h-4 mr-1" />
               {t("返回完整点评", "Back to Full Critique")}
             </Button>
 
-            {/* Score Card */}
-            <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
-              <CardContent className="pt-6 text-center">
-                <div className="text-6xl font-bold text-gradient-gold mb-2">{score}/100</div>
-                <p className="text-muted-foreground text-sm">{t("综合评分", "Overall Score")}</p>
-              </CardContent>
-            </Card>
+            {/* Image Comparison: Original vs AI Reference - at top */}
+            {messages.some(m => m.generatedImage) && (
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
+                      <img
+                        src={imageData!}
+                        alt="Original"
+                        className="w-full rounded-lg object-contain"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground text-center mb-2 flex items-center justify-center gap-1">
+                        <Sparkles className="w-3 h-3 text-primary" />
+                        {t("AI优化", "AI Optimized")}
+                      </p>
+                      <img
+                        src={messages.find(m => m.generatedImage)?.generatedImage}
+                        alt="AI Generated"
+                        className="w-full rounded-lg object-contain"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Score - smaller, compact */}
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-3xl font-bold text-gradient-gold">{score}</span>
+              <span className="text-muted-foreground text-sm">/ 100</span>
+              <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+                {t("综合评分", "Overall Score")}
+              </span>
+            </div>
 
             {/* One-liner Critique */}
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-bold text-primary mb-3">💥 {t("一句话暴击", "One-liner Roast")}</h3>
-                <p className="text-foreground leading-relaxed">{getOneLinerCritique()}</p>
+            <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-foreground leading-relaxed">{getOneLinerCritique()}</p>
               </CardContent>
             </Card>
 
-            {/* Persona Critiques - In Chinese, no avatars */}
+            {/* Persona Critiques - sincere, objective */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("群友锐评", "Group Critique")}
@@ -893,38 +923,6 @@ const Critique = () => {
                 </Card>
               ))}
             </div>
-
-            {/* AI Reference Image - Side by Side Comparison */}
-            {messages.some(m => m.generatedImage) && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    {t("AI优化参考图", "AI Optimized Reference")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
-                      <img
-                        src={imageData!}
-                        alt="Original"
-                        className="w-full rounded-lg object-contain"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground text-center mb-2">{t("AI优化", "AI Optimized")}</p>
-                      <img
-                        src={messages.find(m => m.generatedImage)?.generatedImage}
-                        alt="AI Generated"
-                        className="w-full rounded-lg object-contain"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* View Detailed Button */}
             {historyId && (

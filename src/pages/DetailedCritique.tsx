@@ -203,34 +203,57 @@ const DetailedCritique = () => {
             </div>
           </div>
 
-          {/* Original Image */}
-          <Card className="overflow-hidden">
-            <img
-              src={critiqueData.imageData}
-              alt="Critiqued photo"
-              className="w-full h-auto object-contain"
-            />
-          </Card>
+          {/* Image Comparison: Original vs AI Reference - at TOP */}
+          {messages.some(m => m.generatedImage) ? (
+            <Card>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
+                    <img
+                      src={critiqueData.imageData}
+                      alt="Original"
+                      className="w-full rounded-lg object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground text-center mb-2 flex items-center justify-center gap-1">
+                      <Sparkles className="w-3 h-3 text-primary" />
+                      {t("AI优化", "AI Optimized")}
+                    </p>
+                    <img
+                      src={messages.find(m => m.generatedImage)?.generatedImage}
+                      alt="AI Generated"
+                      className="w-full rounded-lg object-contain"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden">
+              <img
+                src={critiqueData.imageData}
+                alt="Critiqued photo"
+                className="w-full h-auto object-contain"
+              />
+            </Card>
+          )}
 
           {/* Score */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">{t("综合评分", "Overall Score")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <span className="text-4xl font-bold text-gradient-gold">{critiqueData.score}/100</span>
-                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-500"
-                    style={{ width: `${critiqueData.score}%` }}
-                  />
-                </div>
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-bold text-gradient-gold">{critiqueData.score}</span>
+                <span className="text-muted-foreground text-sm">/ 100</span>
+                <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+                  {t("综合评分", "Overall Score")}
+                </span>
               </div>
             </CardContent>
           </Card>
 
-          {/* Critique Sections in Cards */}
+          {/* Critique Sections in Cards - Multi-dimensional evaluation */}
           {sections.length > 0 ? (
             sections.map((section, i) => {
               const { text: cleanText, links } = extractLinks(section.content);
@@ -269,56 +292,32 @@ const DetailedCritique = () => {
               </CardContent>
             </Card>
           )}
+        </div>
+      </div>
 
-          {/* AI Reference Image */}
-          {messages.some(m => m.generatedImage) && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-primary flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  {t("AI优化参考图", "AI Optimized Reference")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <img
-                  src={messages.find(m => m.generatedImage)?.generatedImage}
-                  alt="AI Generated"
-                  className="w-full h-auto rounded-lg"
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Continue Chat - Simple Input Only */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("继续提问", "Continue Chat")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder={t("输入问题...", "Ask a question...")}
-                  className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/30"
-                />
-                <Button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
-                  size="icon"
-                  className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Sticky Input Bar */}
+      <div className="border-t border-border/50 bg-background/80 backdrop-blur-xl p-4">
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder={t("输入你的问题...", "Ask a question...")}
+            className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+          />
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            size="icon"
+            className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
         </div>
       </div>
       <div ref={messagesEndRef} />
