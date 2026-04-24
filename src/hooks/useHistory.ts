@@ -80,87 +80,70 @@ export function generateTitle(text: string, lang: string): string {
 
   // Extract score
   const scoreMatch = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
-  const score = scoreMatch ? scoreMatch[1] : "";
+  const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
 
-  // Extract style/genre keywords
-  const stylePatterns = [
-    /风格[:\s]*([^\n，,。！？]{2,10})/,
-    /当前风格[:\s]*([^\n，,。！？]{2,10})/,
-    /类型[:\s]*([^\n，,。！？]{2,10})/,
-    /场景[:\s]*([^\n，,。！？]{2,10})/,
-  ];
-  let style = "";
-  for (const pattern of stylePatterns) {
-    const match = fullText.match(pattern);
-    if (match && match[1]) {
-      style = match[1].trim();
-      break;
+  // Funny snarky titles based on score
+  if (score > 0) {
+    if (score < 30) {
+      const badTitles = [
+        "烂片鉴定完毕，建议删除",
+        "这照片...我选择沉默",
+        "摄影师看了会沉默",
+        "建议设为手机壁纸提醒自己进步",
+        "拍了个寂寞",
+      ];
+      return badTitles[Math.floor(Math.random() * badTitles.length)];
     }
-  }
-
-  // Extract most prominent critique keyword (what needs improvement or is noteworthy)
-  const negativePatterns = [
-    /光[线影]+(太|比较|比较)?([一-龥]{2,8})/,
-    /构[图](太|比较|比较)?([一-龥]{2,8})/,
-    /曝[光明](太|过|欠)?([一-龥]{2,8})/,
-    /色[调彩](太|比较|比较)?([一-龥]{2,8})/,
-    /姿[势态](太|比较|僵硬|不自然)?([一-龥]{2,8})/,
-    /背[景虚](太|比较)?([一-龥]{2,8})/,
-    /表[情达](不自然|僵硬|平淡)?([一-龥]{2,8})/,
-    /对[焦清晰度](不|虚)?([一-龥]{2,8})/,
-  ];
-
-  let critiqueKeyword = "";
-  for (const pattern of negativePatterns) {
-    const match = fullText.match(pattern);
-    if (match) {
-      critiqueKeyword = match[0].slice(0, 12);
-      break;
+    if (score < 50) {
+      const okTitles = [
+        "有进步空间，真的",
+        "比游客照强一点",
+        "勉强能发朋友圈",
+        "摄影师的痛你不懂",
+        "下次会更好的",
+      ];
+      return okTitles[Math.floor(Math.random() * okTitles.length)];
     }
-  }
-
-  // If no negative keyword found, look for positive
-  if (!critiqueKeyword) {
-    const positivePatterns = [
-      /光[线影]+[很讲较不错好][一-龥]*/,
-      /构[图]+[很讲较不错好][一-龥]*/,
-      /表[情达]+[很自然不错好][一-龥]*/,
-      /氛[围感]+[很不错好][一-龥]*/,
+    if (score < 70) {
+      const midTitles = [
+        "及格线上的选手",
+        "有点东西但不多",
+        "潜力股，了解一下",
+        "普通但不算烂",
+        "继续加油吧",
+      ];
+      return midTitles[Math.floor(Math.random() * midTitles.length)];
+    }
+    if (score < 85) {
+      const goodTitles = [
+        "不错不错，能看！",
+        "朋友圈点赞收割机",
+        "有点审美在线",
+        "可以给朋友炫耀了",
+        "摄影师小有成就",
+      ];
+      return goodTitles[Math.floor(Math.random() * goodTitles.length)];
+    }
+    // 85-100
+    const greatTitles = [
+      "大片既视感！",
+      "这水平可以接单了",
+      "绝绝子！",
+      "摄影师天赋异禀",
+      "原地出道吧",
     ];
-    for (const pattern of positivePatterns) {
-      const match = fullText.match(pattern);
-      if (match) {
-        critiqueKeyword = "✓" + match[0].slice(0, 10);
-        break;
-      }
-    }
+    return greatTitles[Math.floor(Math.random() * greatTitles.length)];
   }
 
-  // Build title
-  if (style && critiqueKeyword && score) {
-    return `${style} · ${critiqueKeyword} · ${score}分`;
-  }
-  if (style && score) {
-    return `${style} · ${score}分`;
-  }
-  if (style && critiqueKeyword) {
-    return `${style} · ${critiqueKeyword}`;
-  }
-  if (critiqueKeyword && score) {
-    return `${critiqueKeyword} · ${score}分`;
-  }
-  if (score) {
-    return `综合评分 ${score}分`;
-  }
-
-  // Fallback: find first meaningful sentence
+  // Fallback if no score found
   for (const line of lines) {
-    const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()🎨📱📝📐✨🔧💡❌>]/g, "").trim();
-    if (cleaned.length > 4 && cleaned.length < 30 && !line.startsWith("#") && !line.startsWith("---") && !line.startsWith("|") && !line.includes("评分") && !line.includes("Score")) {
-      return cleaned.slice(0, 20);
-    }
+    if (line.includes("构图") && line.includes("问题")) return "构图有问题";
+    if (line.includes("光线")) return "光线不太行";
+    if (line.includes("表情")) return "表情管理失败";
+    if (line.includes("背景")) return "背景太乱";
   }
-  return lang === "zh" ? "照片点评" : "Photo Critique";
+
+  return lang === "zh" ? "一张照片的命运" : "Photo Destiny";
 }
 
 export function useHistory() {
