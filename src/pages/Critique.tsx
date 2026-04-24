@@ -135,6 +135,58 @@ const Critique = () => {
   };
 
   const personasFetchingRef = useRef(false);
+  const titleFetchingRef = useRef(false);
+  const titleDoneForHistoryRef = useRef<string | null>(null);
+
+  // Generate a witty, specific AI title and update the history record
+  const fetchAITitle = async (critiqueText: string, refImage: string | null, hid: string | null) => {
+    if (!hid) return;
+    if (titleFetchingRef.current) return;
+    if (titleDoneForHistoryRef.current === hid) return;
+    titleFetchingRef.current = true;
+    try {
+      const { downscaleImage } = await import("@/lib/imageUtils");
+      const brief = buildPersonaBrief(critiqueText);
+      const smallImage = refImage ? await downscaleImage(refImage, 768, 0.72) : null;
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 20000);
+      let resp: Response;
+      try {
+        resp = await fetch(TITLE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: smallImage,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
+
+      if (!resp.ok) {
+        console.warn("Title fetch failed", resp.status);
+        return;
+      }
+      const data = await resp.json();
+      const aiTitle = (data?.title || "").toString().trim();
+      if (aiTitle) {
+        updateRecord(hid, { title: aiTitle });
+        titleDoneForHistoryRef.current = hid;
+      }
+    } catch (e) {
+      console.warn("Title fetch exception", e);
+    } finally {
+      titleFetchingRef.current = false;
+    }
+  };
+
 
   // Fetch dynamic, photo-aware personas from the edge function
   const fetchPersonas = async (critiqueText: string, refImage: string | null) => {
