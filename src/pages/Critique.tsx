@@ -85,6 +85,15 @@ const Critique = () => {
         setHistoryId(hid);
         setImageData(record.imageData);
         setMessages(record.messages as Message[]);
+
+        // If critique is still in progress (no assistant response yet), resume it
+        const hasAssistantResponse = record.messages.some((m: any) => m.role === "assistant");
+        if (!hasAssistantResponse && record.score === 0) {
+          // Show loading state
+          setIsLoading(true);
+          // Resume the critique
+          triggerCritique(record.messages as Message[], true);
+        }
         return;
       }
     }
