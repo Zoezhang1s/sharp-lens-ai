@@ -1080,8 +1080,8 @@ const Critique = () => {
       const captureDiv = document.createElement("div");
       captureDiv.style.cssText = `
         position: relative;
-        width: 720px;
-        padding: 48px 40px;
+        width: 640px;
+        padding: 44px 36px;
         background: #0a0a0f;
         color: white;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1089,23 +1089,23 @@ const Critique = () => {
         box-sizing: border-box;
       `;
 
-      // Logo with speech bubble in bottom right (mobile-friendly size)
+      // Logo with speech bubble in bottom right
       const logoBubble = document.createElement("div");
       logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 6px 14px; border-radius: 14px; font-size: 16px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <div style="background: #f59e0b; color: #000; padding: 6px 14px; border-radius: 14px; font-size: 18px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
           烂片一张~
         </div>
-        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
+        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
       `;
       captureDiv.appendChild(logoBubble);
 
       // Header with logo text — large for mobile readability
       const headerEl = document.createElement("div");
-      headerEl.style.cssText = "text-align: center; margin-bottom: 36px;";
+      headerEl.style.cssText = "text-align: center; margin-bottom: 40px;";
       headerEl.innerHTML = `
-        <div style="font-size: 20px; color: #f59e0b; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">你拍的啥</div>
-        <div style="font-size: 40px; font-weight: bold; color: white; line-height: 1.2;">照片锐评报告</div>
+        <div style="font-size: 24px; color: #f59e0b; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 10px; font-weight: 600;">你拍的啥</div>
+        <div style="font-size: 48px; font-weight: bold; color: white; line-height: 1.2;">照片锐评报告</div>
       `;
       captureDiv.appendChild(headerEl);
 
@@ -1135,24 +1135,24 @@ const Critique = () => {
 
       // Image Comparison: Original vs AI Reference
       const imageSection = document.createElement("div");
-      imageSection.style.cssText = "margin-bottom: 36px;";
+      imageSection.style.cssText = "margin-bottom: 40px;";
       if (generatedImageMsg?.generatedImage) {
         const aiImgData = await toDataUrl(generatedImageMsg.generatedImage);
         imageSection.innerHTML = `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
             <div>
-              <div style="font-size: 18px; color: #aaa; margin-bottom: 10px; text-align: center; font-weight: 600;">原图</div>
+              <div style="font-size: 22px; color: #ccc; margin-bottom: 12px; text-align: center; font-weight: 700;">原图</div>
               <img src="${imageData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
             <div>
-              <div style="font-size: 18px; color: #f59e0b; margin-bottom: 10px; text-align: center; font-weight: 600;">✨ AI优化参考</div>
+              <div style="font-size: 22px; color: #f59e0b; margin-bottom: 12px; text-align: center; font-weight: 700;">✨ AI优化参考</div>
               <img src="${aiImgData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
           </div>
         `;
       } else {
         imageSection.innerHTML = `
-          <div style="font-size: 18px; color: #aaa; margin-bottom: 12px; text-align: center; font-weight: 600;">原图</div>
+          <div style="font-size: 22px; color: #ccc; margin-bottom: 14px; text-align: center; font-weight: 700;">原图</div>
           <img src="${imageData}" style="width: 100%; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);" />
         `;
       }
@@ -1161,10 +1161,10 @@ const Critique = () => {
       // Score Card
       if (score !== null) {
         const scoreSection = document.createElement("div");
-        scoreSection.style.cssText = "text-align: center; margin-bottom: 28px;";
+        scoreSection.style.cssText = "text-align: center; margin-bottom: 32px;";
         scoreSection.innerHTML = `
-          <span style="font-size: 72px; font-weight: bold; color: #f59e0b; line-height: 1;">${score}</span>
-          <span style="font-size: 28px; color: #888; margin-left: 10px;">/ 100</span>
+          <span style="font-size: 88px; font-weight: bold; color: #f59e0b; line-height: 1;">${score}</span>
+          <span style="font-size: 32px; color: #888; margin-left: 12px;">/ 100</span>
         `;
         captureDiv.appendChild(scoreSection);
       }
@@ -1172,32 +1172,44 @@ const Critique = () => {
       // One-liner Critique
       if (oneLiner) {
         const oneLinerSection = document.createElement("div");
-        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 24px; margin-bottom: 36px;";
+        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 26px; margin-bottom: 40px;";
         oneLinerSection.innerHTML = `
-          <div style="font-size: 18px; color: #f59e0b; margin-bottom: 12px; font-weight: 700;">💥 一句话暴击</div>
-          <div style="font-size: 22px; line-height: 1.7; color: white; font-weight: 500;">${oneLiner}</div>
+          <div style="font-size: 22px; color: #f59e0b; margin-bottom: 14px; font-weight: 700;">💥 一句话暴击</div>
+          <div style="font-size: 28px; line-height: 1.6; color: white; font-weight: 600;">${oneLiner}</div>
         `;
         captureDiv.appendChild(oneLinerSection);
       }
 
-      // Persona Critiques (Group Chat) - no avatars
+      // Persona Critiques (Group Chat)
       const groupSection = document.createElement("div");
-      groupSection.style.cssText = "margin-bottom: 36px;";
-      groupSection.innerHTML = `<div style="font-size: 20px; color: #f59e0b; margin-bottom: 18px; font-weight: 700; letter-spacing: 1px;">👥 群友锐评</div>`;
+      groupSection.style.cssText = "margin-bottom: 40px;";
+      groupSection.innerHTML = `<div style="font-size: 24px; color: #f59e0b; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px;">👥 群友锐评</div>`;
 
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
-        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 20px; margin-bottom: 14px;";
-        const langColor = persona.lang === "zh" ? "#f59e0b" : persona.lang === "en" ? "#60a5fa" : persona.lang === "ja" ? "#f472b6" : persona.lang === "ko" ? "#34d399" : "#c084fc";
-        let critiqueHtml = `<div style="font-size: 19px; line-height: 1.7; color: ${langColor}; font-weight: 500;">${cleanForDownload(persona.critique)}</div>`;
-        if (persona.translation) {
-          critiqueHtml += `<div style="font-size: 17px; line-height: 1.65; color: #aaa; margin-top: 12px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">${persona.translation}</div>`;
+        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 22px; margin-bottom: 16px;";
+        const langCode = (persona.lang || "zh").toLowerCase();
+        const isChinese = langCode === "zh";
+        const langColor = isChinese ? "#f59e0b" : langCode === "en" ? "#60a5fa" : langCode === "ja" ? "#f472b6" : langCode === "ko" ? "#34d399" : "#c084fc";
+
+        // Foreign personas: Chinese translation is the MAIN large text; original foreign text is small + dim
+        let critiqueHtml = "";
+        if (isChinese || !persona.translation) {
+          // Chinese (or no translation available) — show as primary big text
+          critiqueHtml = `<div style="font-size: 23px; line-height: 1.65; color: white; font-weight: 500;">${cleanForDownload(persona.critique)}</div>`;
+        } else {
+          // Foreign — Chinese translation FIRST, big and bright
+          critiqueHtml = `
+            <div style="font-size: 23px; line-height: 1.65; color: white; font-weight: 500;">${cleanForDownload(persona.translation)}</div>
+            <div style="font-size: 14px; line-height: 1.55; color: ${langColor}; opacity: 0.65; margin-top: 10px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">${cleanForDownload(persona.critique)}</div>
+          `;
         }
+
         personaCard.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
-            <span style="font-weight: 700; font-size: 19px; color: white;">${persona.name}</span>
-            <span style="font-size: 15px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 12px;">${persona.style}</span>
-            <span style="font-size: 15px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600;">${(persona.lang || "zh").toUpperCase()}</span>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+            <span style="font-weight: 700; font-size: 22px; color: white;">${persona.name}</span>
+            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 12px;">${persona.style}</span>
+            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600;">${langCode.toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
@@ -1280,15 +1292,15 @@ const Critique = () => {
 
         if (filteredSections.length > 0) {
           const detailedSection = document.createElement("div");
-          detailedSection.style.cssText = "margin-top: 28px;";
-          detailedSection.innerHTML = `<div style="font-size: 20px; color: #f59e0b; margin-bottom: 18px; font-weight: 700; letter-spacing: 1px;">📝 详细锐评</div>`;
+          detailedSection.style.cssText = "margin-top: 32px;";
+          detailedSection.innerHTML = `<div style="font-size: 24px; color: #f59e0b; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px;">📝 详细锐评</div>`;
 
           filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
-            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 24px; margin-bottom: 18px;";
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 20px; font-weight: 700; color: #f59e0b; margin-bottom: 14px;">${escapeHtml(cleanForDownload(section.title))}</div>
-              <div style="font-size: 18px; line-height: 1.85; color: #e5e5e5;">${highlightHtml(section.content)}</div>
+              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin-bottom: 16px;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 22px; line-height: 1.8; color: #f0f0f0;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
@@ -1298,9 +1310,9 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
+      footerEl.style.cssText = "text-align: center; margin-top: 56px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 90px;";
       footerEl.innerHTML = `
-        <div style="font-size: 16px; color: #777;">由 AI 提供 · 你拍的啥</div>
+        <div style="font-size: 18px; color: #888;">由 AI 提供 · 你拍的啥</div>
       `;
       captureDiv.appendChild(footerEl);
 
@@ -1502,29 +1514,53 @@ const Critique = () => {
                   </CardContent>
                 </Card>
               ) : (
-                personas.map((persona, i) => (
-                  <Card key={i} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="font-bold text-sm text-foreground">{persona.name}</span>
-                        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                          {persona.style}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
-                          {(persona.lang || "zh").toUpperCase()}
-                        </span>
-                      </div>
-                      <p className={`text-sm leading-relaxed ${persona.lang === "zh" ? "text-foreground" : "text-primary"}`}>
-                        {persona.critique}
-                      </p>
-                      {persona.translation && (
-                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2 bg-secondary/20 rounded-md px-2 py-2">
-                          {persona.translation}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                personas.map((persona, i) => {
+                  const langCode = (persona.lang || "zh").toLowerCase();
+                  const isChinese = langCode === "zh";
+                  return (
+                    <Card key={i} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="font-bold text-sm text-foreground">{persona.name}</span>
+                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                            {persona.style}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
+                            {langCode.toUpperCase()}
+                          </span>
+                        </div>
+                        {isChinese || !persona.translation ? (
+                          <p className="text-sm leading-relaxed text-foreground">
+                            {persona.critique}
+                          </p>
+                        ) : (
+                          <>
+                            {/* Chinese translation as PRIMARY (large, bright) */}
+                            <p className="text-sm leading-relaxed text-foreground font-medium">
+                              {persona.translation}
+                            </p>
+                            {/* Original foreign text as secondary (small, dim, italic) */}
+                            <p
+                              className={`text-[11px] leading-relaxed mt-2 italic opacity-70 border-t border-border/30 pt-2 ${
+                                langCode === "en"
+                                  ? "text-blue-400"
+                                  : langCode === "ja"
+                                  ? "text-pink-400"
+                                  : langCode === "ko"
+                                  ? "text-emerald-400"
+                                  : langCode === "fr"
+                                  ? "text-purple-400"
+                                  : "text-primary"
+                              }`}
+                            >
+                              {persona.critique}
+                            </p>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
 
