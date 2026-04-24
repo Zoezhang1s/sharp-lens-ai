@@ -1273,7 +1273,7 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
+      footerEl.style.cssText = "text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 60px;";
       footerEl.innerHTML = `
         <div style="font-size: 12px; color: #555;">由 AI 提供 · 你拍的啥</div>
       `;
