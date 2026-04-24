@@ -1187,7 +1187,7 @@ const Critique = () => {
 
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
-        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 22px; margin-bottom: 16px;";
+        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 22px; margin-bottom: 16px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px;";
         const langCode = (persona.lang || "zh").toLowerCase();
         const isChinese = langCode === "zh";
         const langColor = isChinese ? "#f59e0b" : langCode === "en" ? "#60a5fa" : langCode === "ja" ? "#f472b6" : langCode === "ko" ? "#34d399" : "#c084fc";
@@ -1195,21 +1195,19 @@ const Critique = () => {
         // Foreign personas: Chinese translation is the MAIN large text; original foreign text is small + dim
         let critiqueHtml = "";
         if (isChinese || !persona.translation) {
-          // Chinese (or no translation available) — show as primary big text
-          critiqueHtml = `<div style="font-size: 23px; line-height: 1.65; color: white; font-weight: 500;">${cleanForDownload(persona.critique)}</div>`;
+          critiqueHtml = `<div style="font-size: 23px; line-height: 1.6; color: white; font-weight: 500; margin: 0;">${cleanForDownload(persona.critique)}</div>`;
         } else {
-          // Foreign — Chinese translation FIRST, big and bright
           critiqueHtml = `
-            <div style="font-size: 23px; line-height: 1.65; color: white; font-weight: 500;">${cleanForDownload(persona.translation)}</div>
-            <div style="font-size: 14px; line-height: 1.55; color: ${langColor}; opacity: 0.65; margin-top: 10px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">${cleanForDownload(persona.critique)}</div>
+            <div style="font-size: 23px; line-height: 1.6; color: white; font-weight: 500; margin: 0;">${cleanForDownload(persona.translation)}</div>
+            <div style="font-size: 14px; line-height: 1.5; color: ${langColor}; opacity: 0.65; margin: 0; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">${cleanForDownload(persona.critique)}</div>
           `;
         }
 
         personaCard.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
-            <span style="font-weight: 700; font-size: 22px; color: white;">${persona.name}</span>
-            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 12px;">${persona.style}</span>
-            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600;">${langCode.toUpperCase()}</span>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0;">
+            <span style="font-weight: 700; font-size: 22px; color: white; line-height: 1.2;">${persona.name}</span>
+            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 12px; line-height: 1.4;">${persona.style}</span>
+            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600; line-height: 1.4;">${langCode.toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
