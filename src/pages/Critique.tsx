@@ -406,6 +406,10 @@ const Critique = () => {
           if (shouldGenerateImage && assistantSoFar) {
             generateOptimizedImage(assistantSoFar, currentMessages);
           }
+          // Generate a witty AI-powered history title (fire-and-forget)
+          if (assistantSoFar && historyId) {
+            fetchAITitle(assistantSoFar, imageData, historyId);
+          }
         },
         onError: (err) => {
           console.error("[Critique] API error:", err, "retryCount:", retryCount);
