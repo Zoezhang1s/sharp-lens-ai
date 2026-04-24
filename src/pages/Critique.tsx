@@ -1347,14 +1347,6 @@ const Critique = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
-                    <img
-                      src={imageData!}
-                      alt="Original"
-                      className="w-full rounded-lg object-contain"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
                     <div
                       className="relative group cursor-pointer"
                       onClick={() => setZoomedImage(imageData!)}
