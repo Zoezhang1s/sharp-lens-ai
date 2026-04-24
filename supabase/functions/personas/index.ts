@@ -86,8 +86,8 @@ serve(async (req) => {
         type: "text",
         text:
           (language === "zh"
-            ? `【主锐评】：\n${critique}\n\n请基于这张照片和这份锐评，随机抽 5 位不同的人物（覆盖中外+严肃+搞笑+反差），每人给一段切中这张照片的犀利点评。随机种子：${variety}`
-            : `[Main critique]:\n${critique}\n\nBased on this photo and the critique, pick 5 different personas (mix of cultures, serious + absurd) and give each one a sharp, photo-specific take. Variety seed: ${variety}`),
+            ? `【主锐评】：\n${critique}\n\n请基于这张照片和这份锐评，只输出 3 位人物：1 位中国人、1 位外国人、1 位离谱反差角色。三个人都要针对这张照片本身，语气像本人，说法尖锐好笑但有干货。随机种子：${variety}`
+            : `[Main critique]:\n${critique}\n\nReturn exactly 3 personas only: 1 Chinese-speaking, 1 foreign, 1 absurd contrast character. All must be photo-specific, sharp, funny, and actionable. Variety seed: ${variety}`),
       },
     ];
     if (imageData) {
@@ -101,7 +101,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
@@ -134,6 +134,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    parsed.personas = Array.isArray(parsed.personas) ? parsed.personas.slice(0, 3) : [];
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
