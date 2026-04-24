@@ -89,10 +89,10 @@ const Critique = () => {
         // If critique is still in progress (no assistant response yet), resume it
         const hasAssistantResponse = record.messages.some((m: any) => m.role === "assistant");
         if (!hasAssistantResponse && record.score === 0) {
-          // Show loading state
+          // Show loading state with retry message
           setIsLoading(true);
-          // Resume the critique
-          triggerCritique(record.messages as Message[], true);
+          // Resume the critique with auto-retry
+          triggerCritiqueWithRetry(record.messages as Message[], true);
         }
         return;
       }
@@ -114,11 +114,72 @@ const Critique = () => {
         setHistoryId(id);
       });
 
-      triggerCritique([userMsg], true);
+      triggerCritique(userMsg, true);
     } else {
       navigate("/");
     }
   }, []);
+
+  // Auto-retry critique with exponential backoff
+  const triggerCritiqueWithRetry = async (currentMessages: Message[], shouldGenerateImage: boolean, retryCount = 0) => {
+    setIsLoading(true);
+    let assistantSoFar = "";
+    let lastError = "";
+
+    const upsertAssistant = (chunk: string) => {
+      assistantSoFar += chunk;
+      const detectedStyleId = detectStyleFromText(assistantSoFar);
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.generatedImage) {
+          return prev.map((m, i) =>
+            i === prev.length - 1 ? { ...m, content: assistantSoFar, detectedStyleId } : m
+          );
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar, detectedStyleId }];
+      });
+    };
+
+    try {
+      await streamChat({
+        messages: buildApiMessages(currentMessages),
+        language: lang === "zh" ? "zh" : "en",
+        onDelta: upsertAssistant,
+        onDone: () => {
+          setIsLoading(false);
+          if (shouldGenerateImage && assistantSoFar) {
+            generateOptimizedImage(assistantSoFar, currentMessages);
+          }
+        },
+        onError: (err) => {
+          lastError = err;
+          console.error("Critique error:", err);
+          // Auto-retry on failure with delay
+          if (retryCount < 3) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, max 10s
+            setTimeout(() => {
+              triggerCritiqueWithRetry(currentMessages, shouldGenerateImage, retryCount + 1);
+            }, delay);
+          } else {
+            toast.error(t("AI服务出错，请稍后重试", "AI service error, please try again"));
+            setIsLoading(false);
+          }
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      // Auto-retry on exception
+      if (retryCount < 3) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        setTimeout(() => {
+          triggerCritiqueWithRetry(currentMessages, shouldGenerateImage, retryCount + 1);
+        }, delay);
+      } else {
+        toast.error(t("AI服务出错，请稍后重试", "AI service error, please try again"));
+        setIsLoading(false);
+      }
+    }
+  };
 
   // Check for in-progress critique on mount
   useEffect(() => {
