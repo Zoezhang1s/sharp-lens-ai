@@ -1080,8 +1080,8 @@ const Critique = () => {
       const captureDiv = document.createElement("div");
       captureDiv.style.cssText = `
         position: relative;
-        width: 800px;
-        padding: 40px;
+        width: 720px;
+        padding: 48px 40px;
         background: #0a0a0f;
         color: white;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1089,23 +1089,23 @@ const Critique = () => {
         box-sizing: border-box;
       `;
 
-      // Logo with small speech bubble in bottom right (compact)
+      // Logo with speech bubble in bottom right (mobile-friendly size)
       const logoBubble = document.createElement("div");
-      logoBubble.style.cssText = "position: absolute; bottom: 16px; right: 16px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 4px;";
+      logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <div style="background: #f59e0b; color: #000; padding: 6px 14px; border-radius: 14px; font-size: 16px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
           烂片一张~
         </div>
-        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
+        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
       `;
       captureDiv.appendChild(logoBubble);
 
-      // Header with logo text
+      // Header with logo text — large for mobile readability
       const headerEl = document.createElement("div");
-      headerEl.style.cssText = "text-align: center; margin-bottom: 30px;";
+      headerEl.style.cssText = "text-align: center; margin-bottom: 36px;";
       headerEl.innerHTML = `
-        <div style="font-size: 14px; color: #f59e0b; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 5px;">你拍的啥</div>
-        <div style="font-size: 28px; font-weight: bold; color: white;">照片锐评报告</div>
+        <div style="font-size: 20px; color: #f59e0b; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">你拍的啥</div>
+        <div style="font-size: 40px; font-weight: bold; color: white; line-height: 1.2;">照片锐评报告</div>
       `;
       captureDiv.appendChild(headerEl);
 
@@ -1135,24 +1135,24 @@ const Critique = () => {
 
       // Image Comparison: Original vs AI Reference
       const imageSection = document.createElement("div");
-      imageSection.style.cssText = "margin-bottom: 30px;";
+      imageSection.style.cssText = "margin-bottom: 36px;";
       if (generatedImageMsg?.generatedImage) {
         const aiImgData = await toDataUrl(generatedImageMsg.generatedImage);
         imageSection.innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div>
-              <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">原图</div>
+              <div style="font-size: 18px; color: #aaa; margin-bottom: 10px; text-align: center; font-weight: 600;">原图</div>
               <img src="${imageData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
             <div>
-              <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">✨ AI优化参考</div>
+              <div style="font-size: 18px; color: #f59e0b; margin-bottom: 10px; text-align: center; font-weight: 600;">✨ AI优化参考</div>
               <img src="${aiImgData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
           </div>
         `;
       } else {
         imageSection.innerHTML = `
-          <div style="font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">原图</div>
+          <div style="font-size: 18px; color: #aaa; margin-bottom: 12px; text-align: center; font-weight: 600;">原图</div>
           <img src="${imageData}" style="width: 100%; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);" />
         `;
       }
@@ -1161,10 +1161,10 @@ const Critique = () => {
       // Score Card
       if (score !== null) {
         const scoreSection = document.createElement("div");
-        scoreSection.style.cssText = "text-align: center; margin-bottom: 24px;";
+        scoreSection.style.cssText = "text-align: center; margin-bottom: 28px;";
         scoreSection.innerHTML = `
-          <span style="font-size: 48px; font-weight: bold; color: #f59e0b;">${score}</span>
-          <span style="font-size: 20px; color: #888; margin-left: 8px;">/ 100</span>
+          <span style="font-size: 72px; font-weight: bold; color: #f59e0b; line-height: 1;">${score}</span>
+          <span style="font-size: 28px; color: #888; margin-left: 10px;">/ 100</span>
         `;
         captureDiv.appendChild(scoreSection);
       }
@@ -1172,32 +1172,32 @@ const Critique = () => {
       // One-liner Critique
       if (oneLiner) {
         const oneLinerSection = document.createElement("div");
-        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 20px; margin-bottom: 30px;";
+        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 24px; margin-bottom: 36px;";
         oneLinerSection.innerHTML = `
-          <div style="font-size: 12px; color: #f59e0b; margin-bottom: 8px; font-weight: 600;">💥 一句话暴击</div>
-          <div style="font-size: 15px; line-height: 1.8; color: white;">${oneLiner}</div>
+          <div style="font-size: 18px; color: #f59e0b; margin-bottom: 12px; font-weight: 700;">💥 一句话暴击</div>
+          <div style="font-size: 22px; line-height: 1.7; color: white; font-weight: 500;">${oneLiner}</div>
         `;
         captureDiv.appendChild(oneLinerSection);
       }
 
       // Persona Critiques (Group Chat) - no avatars
       const groupSection = document.createElement("div");
-      groupSection.style.cssText = "margin-bottom: 30px;";
-      groupSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">群友锐评</div>`;
+      groupSection.style.cssText = "margin-bottom: 36px;";
+      groupSection.innerHTML = `<div style="font-size: 20px; color: #f59e0b; margin-bottom: 18px; font-weight: 700; letter-spacing: 1px;">👥 群友锐评</div>`;
 
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
-        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px;";
+        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 20px; margin-bottom: 14px;";
         const langColor = persona.lang === "zh" ? "#f59e0b" : persona.lang === "en" ? "#60a5fa" : persona.lang === "ja" ? "#f472b6" : persona.lang === "ko" ? "#34d399" : "#c084fc";
-        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.75; color: ${langColor};">${cleanForDownload(persona.critique)}</div>`;
+        let critiqueHtml = `<div style="font-size: 19px; line-height: 1.7; color: ${langColor}; font-weight: 500;">${cleanForDownload(persona.critique)}</div>`;
         if (persona.translation) {
-          critiqueHtml += `<div style="font-size: 12px; line-height: 1.6; color: #888; margin-top: 8px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">${persona.translation}</div>`;
+          critiqueHtml += `<div style="font-size: 17px; line-height: 1.65; color: #aaa; margin-top: 12px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">${persona.translation}</div>`;
         }
         personaCard.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="font-weight: 600; font-size: 14px; color: white;">${persona.name}</span>
-            <span style="font-size: 11px; color: #888; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">${persona.style}</span>
-            <span style="font-size: 11px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 10px;">${(persona.lang || "zh").toUpperCase()}</span>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+            <span style="font-weight: 700; font-size: 19px; color: white;">${persona.name}</span>
+            <span style="font-size: 15px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 12px;">${persona.style}</span>
+            <span style="font-size: 15px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600;">${(persona.lang || "zh").toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
@@ -1245,7 +1245,7 @@ const Critique = () => {
               let html = escapeHtml(line);
               for (const phrase of keyPhrases) {
                 const regex = new RegExp(`(${phrase}[^，。,.\\n]{0,40})`, "g");
-                html = html.replace(regex, '<strong style="color:#f59e0b;font-weight:600;">$1</strong>');
+                html = html.replace(regex, '<strong style="color:#f59e0b;font-weight:700;">$1</strong>');
               }
               return html;
             })
@@ -1255,15 +1255,15 @@ const Critique = () => {
 
         if (filteredSections.length > 0) {
           const detailedSection = document.createElement("div");
-          detailedSection.style.cssText = "margin-top: 20px;";
-          detailedSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">详细锐评</div>`;
+          detailedSection.style.cssText = "margin-top: 28px;";
+          detailedSection.innerHTML = `<div style="font-size: 20px; color: #f59e0b; margin-bottom: 18px; font-weight: 700; letter-spacing: 1px;">📝 详细锐评</div>`;
 
           filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
-            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px;";
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 24px; margin-bottom: 18px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${escapeHtml(cleanForDownload(section.title))}</div>
-              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${highlightHtml(section.content)}</div>
+              <div style="font-size: 20px; font-weight: 700; color: #f59e0b; margin-bottom: 14px;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 18px; line-height: 1.85; color: #e5e5e5;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
@@ -1273,9 +1273,9 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 60px;";
+      footerEl.style.cssText = "text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
       footerEl.innerHTML = `
-        <div style="font-size: 12px; color: #555;">由 AI 提供 · 你拍的啥</div>
+        <div style="font-size: 16px; color: #777;">由 AI 提供 · 你拍的啥</div>
       `;
       captureDiv.appendChild(footerEl);
 
