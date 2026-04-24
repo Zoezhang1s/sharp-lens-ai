@@ -1514,29 +1514,53 @@ const Critique = () => {
                   </CardContent>
                 </Card>
               ) : (
-                personas.map((persona, i) => (
-                  <Card key={i} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="font-bold text-sm text-foreground">{persona.name}</span>
-                        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                          {persona.style}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
-                          {(persona.lang || "zh").toUpperCase()}
-                        </span>
-                      </div>
-                      <p className={`text-sm leading-relaxed ${persona.lang === "zh" ? "text-foreground" : "text-primary"}`}>
-                        {persona.critique}
-                      </p>
-                      {persona.translation && (
-                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2 bg-secondary/20 rounded-md px-2 py-2">
-                          {persona.translation}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                personas.map((persona, i) => {
+                  const langCode = (persona.lang || "zh").toLowerCase();
+                  const isChinese = langCode === "zh";
+                  return (
+                    <Card key={i} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="font-bold text-sm text-foreground">{persona.name}</span>
+                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                            {persona.style}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
+                            {langCode.toUpperCase()}
+                          </span>
+                        </div>
+                        {isChinese || !persona.translation ? (
+                          <p className="text-sm leading-relaxed text-foreground">
+                            {persona.critique}
+                          </p>
+                        ) : (
+                          <>
+                            {/* Chinese translation as PRIMARY (large, bright) */}
+                            <p className="text-sm leading-relaxed text-foreground font-medium">
+                              {persona.translation}
+                            </p>
+                            {/* Original foreign text as secondary (small, dim, italic) */}
+                            <p
+                              className={`text-[11px] leading-relaxed mt-2 italic opacity-70 border-t border-border/30 pt-2 ${
+                                langCode === "en"
+                                  ? "text-blue-400"
+                                  : langCode === "ja"
+                                  ? "text-pink-400"
+                                  : langCode === "ko"
+                                  ? "text-emerald-400"
+                                  : langCode === "fr"
+                                  ? "text-purple-400"
+                                  : "text-primary"
+                              }`}
+                            >
+                              {persona.critique}
+                            </p>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
 
