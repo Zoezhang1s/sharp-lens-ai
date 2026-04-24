@@ -91,9 +91,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
-    if (!DOUBAO_API_KEY) throw new Error("DOUBAO_API_KEY is not configured");
-
     // Step 1: Gemini Pro first extracts concrete issues from critique + photo.
     const analysisSystemMsg = language === "zh"
       ? `你是顶级人像摄影总监兼修图统筹。你的任务不是夸，而是先拆解问题，再给出一段可执行的图生图优化指令。
@@ -287,51 +284,50 @@ Address composition, lighting, pose, expression, camera angle, background, color
     console.log("Image analysis:", analysisResult);
     console.log("Generated image prompt:", imagePrompt);
 
-    // Step 2: Doubao Seedream 4.0 image-to-image with the original as reference
+    // Step 3: Native image editing model generates the improved reference image
     const { width, height } = inferSizeFromImageData(imageData);
     const normalizedWidth = Math.max(512, Math.min(1920, Math.round(width / 32) * 32));
     const normalizedHeight = Math.max(512, Math.min(1920, Math.round(height / 32) * 32));
 
-    const doubaoBody: Record<string, unknown> = {
-      model: "doubao-seedream-4-0-250828",
-      prompt: imagePrompt,
-      sequential_image_generation: "enabled",
-      response_format: "url",
-      size: `${normalizedWidth}x${normalizedHeight}`,
-      stream: false,
-      watermark: false,
-      // Random seed each call so the model actually explores improvements rather than echoing the input
-      seed: Math.floor(Math.random() * 2_147_483_647),
-    };
+    const imageEditInstruction = language === "zh"
+      ? `${imagePrompt}\n\n额外强约束：这不是重新生成陌生模特，而是基于原图做高质量优化编辑。必须保留原图人物身份一致性与场景一致性；人脸必须清晰锐利、五官稳定自然；必须明显修复锐评中提到的问题；输出不能与原图几乎一样。输出一张完成图，不要解释。`
+      : `${imagePrompt}\n\nAdditional hard constraint: this is a high-quality edit of the original photo, not a newly invented model. Preserve the exact person identity and scene continuity; keep the face sharp and natural; visibly fix the flaws from the critique; never return an image that looks almost identical to the original. Output one finished image only, no explanation.`;
 
-    // Doubao Seedream 4.0 expects `image` as an array of URLs/data URIs for i2i
-    if (imageData) {
-      doubaoBody.image = [imageData];
-    }
-
-    const doubaoResp = await fetch(
-      "https://ark.cn-beijing.volces.com/api/v3/images/generations",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${DOUBAO_API_KEY}`,
+    const imageResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: imageEditInstruction },
+              { type: "image_url", image_url: { url: imageData } },
+            ],
+          },
+        ],
+        modalities: ["image", "text"],
+        image: {
+          size: `${normalizedWidth}x${normalizedHeight}`,
         },
-        body: JSON.stringify(doubaoBody),
-      }
-    );
+      }),
+    });
 
-    if (!doubaoResp.ok) {
-      const errText = await doubaoResp.text();
-      console.error("Doubao API error:", doubaoResp.status, errText);
-      throw new Error(`Image generation failed [${doubaoResp.status}]`);
+    if (!imageResp.ok) {
+      const errText = await imageResp.text();
+      console.error("Image editing error:", imageResp.status, errText);
+      throw new Error(`Image generation failed [${imageResp.status}]`);
     }
 
-    const doubaoData = await doubaoResp.json();
-    const imageUrl = doubaoData.data?.[0]?.url;
+    const imageDataResult = await imageResp.json();
+    const imageUrl = imageDataResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!imageUrl) {
-      console.error("No image URL in response:", JSON.stringify(doubaoData));
+      console.error("No image URL in response:", JSON.stringify(imageDataResult));
       throw new Error("No image URL returned");
     }
 
