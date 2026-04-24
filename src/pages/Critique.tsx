@@ -1093,7 +1093,7 @@ const Critique = () => {
       const logoBubble = document.createElement("div");
       logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 6px 14px; border-radius: 14px; font-size: 18px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 14px; font-size: 18px; font-weight: bold; line-height: 1; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: inline-flex; align-items: center; justify-content: center;">
           烂片一张~
         </div>
         <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
