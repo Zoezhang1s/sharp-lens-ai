@@ -94,11 +94,82 @@ serve(async (req) => {
     const DOUBAO_API_KEY = Deno.env.get("DOUBAO_API_KEY");
     if (!DOUBAO_API_KEY) throw new Error("DOUBAO_API_KEY is not configured");
 
-    // Step 1: Multimodal LLM looks at ORIGINAL photo + critique, then writes
-    // a precise i2i edit instruction that fixes EVERY issue while preserving
-    // the person and the location.
+    // Step 1: Gemini Pro first extracts concrete issues from critique + photo.
+    const analysisSystemMsg = language === "zh"
+      ? `你是顶级人像摄影总监兼修图统筹。你的任务不是夸，而是先拆解问题，再给出一段可执行的图生图优化指令。
+
+【目标】
+- 必须根据【原照片】和【锐评内容】识别出原图存在的具体问题。
+- 必须确保生成结果仍然是原图同一个人、同一张脸、同一身衣服、同一环境。
+- 必须让输出图相较原图产生肉眼可见的提升，不能只是轻微润色，更不能几乎一模一样。
+
+【必须分析的维度】
+1. 原图已有优点（最多 3 条）
+2. 原图明确缺点（至少 5 条，必须具体）
+3. 哪些缺点必须被强修：构图 / 光线 / 表情 / 姿势 / 机位 / 背景 / 色彩 / 清晰度
+4. 如何在不换人的前提下把画面做得明显更好
+
+【人脸和身份铁律】
+- 必须是同一个人，同一张脸，同一五官比例，同一发型发色，同一肤色与年龄感。
+- 严禁任何模糊脸、变形脸、双眼不对称、塑料皮、AI 默认脸、陌生人替换。
+- 眼睛必须清晰对焦，鼻口结构不能错位，手指和肢体不能畸形。
+
+【输出格式】
+只输出 3 段内容：
+优点：...
+缺点：...
+优化指令：...
+
+其中“优化指令”必须是给下一步图生图模型使用的中文高强度执行说明，必须具体写清楚要改哪里、怎么改、改到什么程度。`
+      : `You are a top portrait photography director and retouching supervisor. First diagnose the photo, then produce a concrete Chinese image-to-image optimization instruction.
+
+[Goal]
+- Identify concrete problems from both the original photo and the critique.
+- Preserve the exact same person, same face, same outfit, same environment.
+- Make the result visibly better, not just lightly retouched and never near-identical.
+
+[Must analyze]
+1. Existing strengths (max 3)
+2. Specific flaws (at least 5, concrete)
+3. Which flaws must be strongly fixed: composition / lighting / expression / pose / camera angle / background / color / sharpness
+4. How to make it clearly better without changing identity
+
+[Identity and face rules]
+- Same person, same face, same feature proportions, same hair, same skin tone, same age impression.
+- No blur, no face distortion, no asymmetric eyes, no plastic skin, no generic AI face, no replacement person.
+- Eyes must be in focus; nose and mouth structure must remain correct; fingers and limbs must not deform.
+
+[Output format]
+Output exactly 3 sections only:
+Strengths: ...
+Flaws: ...
+Optimization instruction: ...
+
+The “Optimization instruction” must be a Chinese high-intensity execution brief for the next image model, with concrete, actionable fixes.`;
+
+    const analysisResult = await callLovableChat(
+      LOVABLE_API_KEY,
+      "google/gemini-2.5-pro",
+      [
+        { role: "system", content: analysisSystemMsg },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: language === "zh"
+                ? `【原照片】见图，【锐评内容】如下：\n\n${prompt}`
+                : `[Original photo] attached. [Critique]:\n\n${prompt}`,
+            },
+            { type: "image_url", image_url: { url: imageData } },
+          ],
+        },
+      ],
+    );
+
+    // Step 2: Multimodal LLM writes a precise i2i instruction that fixes EVERY issue.
     const systemMsg = language === "zh"
-      ? `你是顶级人像摄影总监。任务：基于【原照片】生成一段图生图(i2i)中文提示词，让结果成为"同一个人、同一身衣服、同一环境下，但拍得明显更好"的示范图。
+      ? `你是顶级人像摄影总监。任务：基于【原照片】+【问题分析】生成一段图生图(i2i)中文提示词，让结果成为"同一个人、同一身衣服、同一环境下，但拍得明显更好"的示范图。
 
 【铁律一：人脸必须清晰锐利，绝对不能变形、模糊、糊脸】
 - 人脸必须高清、五官清晰锐利、皮肤纹理自然真实，眼神有神，对焦点必须落在眼睛上。
@@ -139,6 +210,8 @@ serve(async (req) => {
 - 直接输出最终的中文 i2i 提示词，不要解释，不要分点。
 - 第一句必须是身份锁 + 人脸锐度锁：明确写"必须是原图同一人，同一张脸，同一身衣服，同一环境；人脸高清锐利对焦在眼睛，绝不模糊变形"。
 - 第二句写要放大的气质和保留的优点。
+- 必须把【问题分析】里列出的缺点逐项硬修，不能遗漏；如果没修就是失败。
+- 必须明确写出“成片与原图要有明显差异，但人物身份不能变”。
 - 接下来按"构图 / 光线 / 姿势 / 表情 / 机位 / 背景 / 色彩 / 焦段"顺序，把锐评里指出的问题逐条改好，写成具体可执行的拍摄指令（例如"机位下蹲到胸口高度仰拍 15 度"）。
 - 总长度 220–350 字。`
       : `You are a top portrait photography director. Task: based on the [original photo], write one Chinese-style image-to-image prompt so the result is "the same person, same outfit, same environment, but photographed visibly better".
@@ -178,45 +251,29 @@ Address composition, lighting, pose, expression, camera angle, background, color
 - Output only the final i2i prompt in Chinese, no explanation, no bullet points.
 - First sentence: identity + face-sharpness lock.
 - Second sentence: which mood to amplify and which strengths to keep.
+- You MUST fix every flaw listed in the analysis; missing fixes means failure.
+- You MUST explicitly require a visibly improved result while preserving identity.
 - Then in order — composition / lighting / pose / expression / angle / background / color / focal length — fix each issue from the critique with specific shooting instructions.
 - 220–350 words total.`;
-
-    const promptGenResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemMsg },
+    let imagePrompt = await callLovableChat(
+      LOVABLE_API_KEY,
+      "google/gemini-2.5-pro",
+      [
+        { role: "system", content: systemMsg },
+        {
+          role: "user",
+          content: [
             {
-              role: "user",
-              content: imageData
-                ? [
-                    { type: "text", text: language === "zh" ? `【原照片】见图，【点评】如下：\n\n${prompt}` : `[Original photo] attached. [Critique]:\n\n${prompt}` },
-                    { type: "image_url", image_url: { url: imageData } },
-                  ]
-                : prompt,
+              type: "text",
+              text: language === "zh"
+                ? `【原照片】见图，【锐评】如下：\n\n${prompt}\n\n【问题分析】\n${analysisResult}`
+                : `[Original photo] attached. [Critique]:\n\n${prompt}\n\n[Analysis]\n${analysisResult}`,
             },
+            { type: "image_url", image_url: { url: imageData } },
           ],
-        }),
-      }
+        },
+      ],
     );
-
-    if (!promptGenResp.ok) {
-      const errText = await promptGenResp.text();
-      console.error("Prompt generation error:", promptGenResp.status, errText);
-      throw new Error("Failed to generate image prompt");
-    }
-
-    const promptGenData = await promptGenResp.json();
-    let imagePrompt = promptGenData.choices?.[0]?.message?.content?.trim();
-
-    if (!imagePrompt) throw new Error("Empty image prompt generated");
 
     // Reinforce identity-lock + face-sharpness + must-improve at prompt level
     const identityLock = language === "zh"
