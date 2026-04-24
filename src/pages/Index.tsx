@@ -64,7 +64,7 @@ const Index = () => {
       <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg w-full animate-fade-up">
         {/* Logo area */}
         <div className="flex flex-col items-center gap-3">
-          <img src={logoImg} alt="Logo" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-[0_0_20px_hsl(38_92%_50%/0.3)]" width={512} height={512} />
+          <img src={logoImg} alt="Logo" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-[0_0_20px_hsl(38_92%_50%/0.3)]" width={144} height={144} loading="eager" />
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-gradient-gold">
             {t("你拍的啥", "WhatDidYouShoot")}
           </h1>
