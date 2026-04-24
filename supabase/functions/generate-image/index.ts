@@ -241,7 +241,8 @@ Address composition, lighting, pose, expression, camera angle, background, color
 - New face, different person, blurry/distorted face, changed feature proportions
 - Changed clothes, hair, body, age, gender
 - Different scene or different style
-- Lights/equipment/random bystanders in frame
+- **Absolutely NO photo equipment or behind-the-scenes leaking into frame**: no softboxes, fill lights, light stands, reflectors, studio backdrops, teleprompters, tripods, cameras, microphones, gimbals, boom poles, director chairs, crew members, makeup artists, assistants, onlookers, cables, strobes, umbrella lights — none of these may appear
+- **Must output ONLY the finished final photograph**, never a BTS / making-of / work-in-progress shot. Nothing in the frame may suggest the subject is being photographed
 - Generic "AI influencer face + warm cream tone"
 - Output that looks essentially identical to the original
 
