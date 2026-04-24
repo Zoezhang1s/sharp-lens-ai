@@ -182,7 +182,7 @@ export function generateTitle(text: string, lang: string): string {
       else if (score >= 45) pool = theme.titles.mid;
       else pool = theme.titles.low;
 
-      return title;
+      return pool[Math.floor(Math.random() * pool.length)];
     }
   }
 
