@@ -188,7 +188,7 @@ const SYSTEM_PROMPT_EN = `You are "WhatDidYouShoot" — the most professional, s
 - Bold **key words** for maximum impact
 - Objective scoring: 40-50 trash, 50-60 average, 60-72 decent, 72-82 good, 82-90 great, 90+ elite
 - **NEVER add greetings**
-- **Style names must match the list above**`;
+- **"Best Recommendation" is free-form; "Encyclopedia Match" must use a name from the list above**`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
