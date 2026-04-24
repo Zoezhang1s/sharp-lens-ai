@@ -746,69 +746,50 @@ const Critique = () => {
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, "\"")
       .replace(/&#39;/g, "'")
-      .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markers
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "|||LINK|||$1|||URL|||$2|||ENDLINK|||");
+      .replace(/\*\*(.*?)\*\*/g, "$1"); // Remove bold markers
 
     // Key phrases to highlight
     const keyPhrases = [
       "建议", "重点", "关键", "必须", "一定", "不要", "避免",
       "提高", "改善", "加强", "注意", "调整", "改变",
       "构图", "光线", "曝光", "对焦", "白平衡", "色彩",
-      "姿势", "表情", "背景", "构图", "光圈", "快门",
+      "姿势", "表情", "背景", "光圈", "快门",
       "ISO", "焦段", "角度", "机位", "时段",
     ];
 
-    // Helper to highlight key phrases in a line
-    const highlightLine = (line: string): React.ReactNode => {
-      // Check if line contains links
-      if (line.includes("|||LINK|||")) {
-        const parts = line.split(/(|||LINK|||.*?|||ENDLINK|||)/g);
-        return parts.map((part, j) => {
-          if (part.startsWith("|||LINK|||")) {
-            const match = part.match(/\|\|\|LINK\|\|\|(.+?)\|\|\|URL\|\|\|(.+?)\|\|\|ENDLINK\|\|\|/);
-            if (match) {
-              return (
-                <a key={j} href={match[2]} target="_blank" rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2 hover:text-primary/80">
-                  {match[1]}
-                </a>
-              );
-            }
-          }
-          // Check if this part has key phrases
-          let result: React.ReactNode = part;
-          for (const phrase of keyPhrases) {
-            if (part.includes(phrase) && part.length < 200) {
-              // Highlight key phrases
-              const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
-              result = part.split(regex).map((seg, k) => {
-                if (k % 2 === 1) {
-                  return <strong key={`${j}-${k}`} className="text-amber-500 font-semibold">{seg}</strong>;
-                }
-                return seg;
-              });
-              break;
-            }
-          }
-          return result;
-        });
-      }
-
-      // No links - check for key phrases
-      let result: React.ReactNode = line;
-      for (const phrase of keyPhrases) {
-        if (line.includes(phrase) && line.length < 200) {
-          const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
-          result = line.split(regex).map((seg, k) => {
-            if (k % 2 === 1) {
-              return <strong key={k} className="text-amber-500 font-semibold">{seg}</strong>;
-            }
-            return seg;
-          });
-          break;
+    // Helper to render a string with markdown links rendered as clickable badges
+    const renderWithLinks = (line: string, keyPrefix: string): React.ReactNode => {
+      const parts = line.split(/(\[[^\]]+\]\([^)]+\))/g);
+      return parts.map((part, i) => {
+        const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (m) {
+          return (
+            <a
+              key={`${keyPrefix}-l-${i}`}
+              href={m[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 rounded-full bg-primary/15 text-primary text-xs font-medium hover:bg-primary/25 transition-colors no-underline"
+            >
+              {m[1]}
+            </a>
+          );
         }
-      }
-      return result;
+        // Highlight key phrases
+        for (const phrase of keyPhrases) {
+          if (part.includes(phrase) && part.length < 200) {
+            const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
+            return part.split(regex).map((seg, k) =>
+              k % 2 === 1 ? (
+                <strong key={`${keyPrefix}-h-${i}-${k}`} className="text-amber-500 font-semibold">{seg}</strong>
+              ) : (
+                <span key={`${keyPrefix}-t-${i}-${k}`}>{seg}</span>
+              )
+            );
+          }
+        }
+        return <span key={`${keyPrefix}-p-${i}`}>{part}</span>;
+      });
     };
 
     // Split by lines and handle tables specially
