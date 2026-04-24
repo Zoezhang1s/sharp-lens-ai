@@ -1093,7 +1093,7 @@ const Critique = () => {
       const logoBubble = document.createElement("div");
       logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 6px 14px; border-radius: 14px; font-size: 18px; font-weight: bold; line-height: 1.2; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 14px; font-size: 18px; font-weight: bold; line-height: 1; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: inline-flex; align-items: center; justify-content: center;">
           烂片一张~
         </div>
         <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
@@ -1172,10 +1172,10 @@ const Critique = () => {
       // One-liner Critique
       if (oneLiner) {
         const oneLinerSection = document.createElement("div");
-        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 26px; margin-bottom: 40px;";
+        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 28px 26px; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px; text-align: center;";
         oneLinerSection.innerHTML = `
-          <div style="font-size: 22px; color: #f59e0b; margin-bottom: 14px; font-weight: 700;">💥 一句话暴击</div>
-          <div style="font-size: 28px; line-height: 1.6; color: white; font-weight: 600;">${oneLiner}</div>
+          <div style="font-size: 22px; color: #f59e0b; font-weight: 700; line-height: 1; margin: 0;">💥 一句话暴击</div>
+          <div style="font-size: 28px; line-height: 1.5; color: white; font-weight: 600; margin: 0;">${oneLiner}</div>
         `;
         captureDiv.appendChild(oneLinerSection);
       }
@@ -1187,7 +1187,7 @@ const Critique = () => {
 
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
-        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 22px; margin-bottom: 16px;";
+        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 22px; margin-bottom: 16px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px;";
         const langCode = (persona.lang || "zh").toLowerCase();
         const isChinese = langCode === "zh";
         const langColor = isChinese ? "#f59e0b" : langCode === "en" ? "#60a5fa" : langCode === "ja" ? "#f472b6" : langCode === "ko" ? "#34d399" : "#c084fc";
@@ -1195,21 +1195,19 @@ const Critique = () => {
         // Foreign personas: Chinese translation is the MAIN large text; original foreign text is small + dim
         let critiqueHtml = "";
         if (isChinese || !persona.translation) {
-          // Chinese (or no translation available) — show as primary big text
-          critiqueHtml = `<div style="font-size: 23px; line-height: 1.65; color: white; font-weight: 500;">${cleanForDownload(persona.critique)}</div>`;
+          critiqueHtml = `<div style="font-size: 23px; line-height: 1.6; color: white; font-weight: 500; margin: 0;">${cleanForDownload(persona.critique)}</div>`;
         } else {
-          // Foreign — Chinese translation FIRST, big and bright
           critiqueHtml = `
-            <div style="font-size: 23px; line-height: 1.65; color: white; font-weight: 500;">${cleanForDownload(persona.translation)}</div>
-            <div style="font-size: 14px; line-height: 1.55; color: ${langColor}; opacity: 0.65; margin-top: 10px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">${cleanForDownload(persona.critique)}</div>
+            <div style="font-size: 23px; line-height: 1.6; color: white; font-weight: 500; margin: 0;">${cleanForDownload(persona.translation)}</div>
+            <div style="font-size: 14px; line-height: 1.5; color: ${langColor}; opacity: 0.65; margin: 0; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">${cleanForDownload(persona.critique)}</div>
           `;
         }
 
         personaCard.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
-            <span style="font-weight: 700; font-size: 22px; color: white;">${persona.name}</span>
-            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 12px;">${persona.style}</span>
-            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600;">${langCode.toUpperCase()}</span>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0;">
+            <span style="font-weight: 700; font-size: 22px; color: white; line-height: 1.2; display: inline-flex; align-items: center;">${persona.name}</span>
+            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 12px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${persona.style}</span>
+            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 12px; font-weight: 600; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${langCode.toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
@@ -1297,10 +1295,10 @@ const Critique = () => {
 
           filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
-            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px;";
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin-bottom: 16px;">${escapeHtml(cleanForDownload(section.title))}</div>
-              <div style="font-size: 22px; line-height: 1.8; color: #f0f0f0;">${highlightHtml(section.content)}</div>
+              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin: 0; line-height: 1.3;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 22px; line-height: 1.7; color: #f0f0f0; margin: 0;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
