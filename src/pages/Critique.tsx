@@ -829,7 +829,7 @@ const Critique = () => {
 
       {/* Header with actions */}
       <div className="px-4 py-3 border-b border-border/50 bg-background/80 backdrop-blur-xl flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+        <Button variant="ghost" size="icon" onClick={() => historyId ? navigate(-1) : navigate("/")}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex items-center gap-2">
@@ -988,7 +988,7 @@ const Critique = () => {
       {/* Input Bar */}
       <div className="border-t border-border/50 bg-background/80 backdrop-blur-xl p-4">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-primary" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-primary" onClick={() => historyId ? navigate(-1) : navigate("/")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <button
