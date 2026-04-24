@@ -1406,9 +1406,9 @@ const Critique = () => {
               {personas.length === 0 ? (
                 <Card>
                   <CardContent className="pt-4 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    {isLoadingPersonas ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : null}
                     <span className="text-xs text-muted-foreground">
-                      {t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
+                      {personasError || t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
                     </span>
                   </CardContent>
                 </Card>
@@ -1416,15 +1416,20 @@ const Critique = () => {
                 personas.map((persona, i) => (
                   <Card key={i} className="hover:shadow-md transition-shadow">
                     <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="font-bold text-sm text-foreground">{persona.name}</span>
                         <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
                           {persona.style}
                         </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
+                          {(persona.lang || "zh").toUpperCase()}
+                        </span>
                       </div>
-                      <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
+                      <p className={`text-sm leading-relaxed ${persona.lang === "zh" ? "text-foreground" : "text-primary"}`}>
+                        {persona.critique}
+                      </p>
                       {persona.translation && (
-                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
+                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2 bg-secondary/20 rounded-md px-2 py-2">
                           {persona.translation}
                         </p>
                       )}
