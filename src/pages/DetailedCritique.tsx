@@ -22,6 +22,68 @@ interface CritiqueData {
   title: string;
 }
 
+// Clean markdown formatting and HTML entities
+const cleanContent = (text: string): string => {
+  return text
+    .replace(/\*\*\*\*/g, "") // Remove *** bold markers
+    .replace(/\*\*(.*?)\*\*/g, "$1") // Convert **bold** to plain text
+    .replace(/_(.*?)_/g, "$1") // Convert _italic_ to plain text
+    .replace(/~~(.*?)~~/g, "$1") // Convert ~~strikethrough~~ to plain text
+    .replace(/#{1,6}\s/g, "") // Remove # headers
+    .replace(/\|/g, " ") // Replace table pipes with spaces
+    .replace(/---/g, "") // Remove horizontal rules
+    .replace(/>/g, "") // Remove blockquotes
+    .replace(/&nbsp;/g, " ") // Replace &nbsp; with space
+    .replace(/&amp;/g, "&") // Replace &amp; with &
+    .replace(/&lt;/g, "<") // Replace &lt; with <
+    .replace(/&gt;/g, ">") // Replace &gt; with >
+    .replace(/&quot;/g, "\"") // Replace &quot; with "
+    .replace(/&#39;/g, "'") // Replace &#39; with '
+    .replace(/\n{3,}/g, "\n\n") // Remove extra newlines
+    .trim();
+};
+
+// Parse critique into sections by ## headers
+const parseCritiqueSections = (content: string): { title: string; content: string }[] => {
+  const sections: { title: string; content: string }[] = [];
+  const lines = content.split("\n");
+  let currentSection = { title: "", content: "" };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("## ")) {
+      if (currentSection.title) {
+        sections.push(currentSection);
+      }
+      currentSection = { title: trimmed.replace("## ", ""), content: "" };
+    } else if (trimmed.startsWith("### ")) {
+      if (currentSection.title) {
+        sections.push(currentSection);
+      }
+      currentSection = { title: trimmed.replace("### ", ""), content: "" };
+    } else if (trimmed && !trimmed.startsWith("---") && !trimmed.match(/^\|.*\|$/)) {
+      // Skip empty lines, hr lines, and table rows
+      if (currentSection.title || currentSection.content) {
+        currentSection.content += trimmed + " ";
+      }
+    }
+  }
+  if (currentSection.title) {
+    sections.push(currentSection);
+  }
+  return sections;
+};
+
+// Extract links from text and return cleaned text with link info
+const extractLinks = (text: string): { text: string; links: { text: string; url: string }[] } => {
+  const links: { text: string; url: string }[] = [];
+  const cleanedText = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+    links.push({ text: linkText, url });
+    return linkText;
+  });
+  return { text: cleanedText, links };
+};
+
 const DetailedCritique = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
@@ -113,33 +175,6 @@ const DetailedCritique = () => {
     }
   };
 
-  // Parse critique content into sections
-  const parseCritiqueSections = (content: string) => {
-    const sections: { title: string; content: string }[] = [];
-    const lines = content.split("\n");
-    let currentSection = { title: "", content: "" };
-
-    for (const line of lines) {
-      if (line.startsWith("## ")) {
-        if (currentSection.title) {
-          sections.push(currentSection);
-        }
-        currentSection = { title: line.replace("## ", ""), content: "" };
-      } else if (line.startsWith("### ")) {
-        if (currentSection.title) {
-          sections.push(currentSection);
-        }
-        currentSection = { title: line.replace("### ", ""), content: "" };
-      } else if (currentSection.title || currentSection.content) {
-        currentSection.content += line + "\n";
-      }
-    }
-    if (currentSection.title) {
-      sections.push(currentSection);
-    }
-    return sections;
-  };
-
   if (!critiqueData) {
     return (
       <div className="min-h-screen pt-14 flex items-center justify-center">
@@ -149,14 +184,14 @@ const DetailedCritique = () => {
   }
 
   const mainCritique = messages.find(m => m.role === "assistant" && !m.generatedImage);
-  const sections = mainCritique ? parseCritiqueSections(mainCritique.content) : [];
+  const sections = mainCritique ? parseCritiqueSections(cleanContent(mainCritique.content)) : [];
 
   return (
     <div className="min-h-screen pt-14 flex flex-col">
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
+          {/* Header with Back Button */}
+          <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -170,13 +205,11 @@ const DetailedCritique = () => {
 
           {/* Original Image */}
           <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <img
-                src={critiqueData.imageData}
-                alt="Critiqued photo"
-                className="w-full h-auto object-contain"
-              />
-            </CardContent>
+            <img
+              src={critiqueData.imageData}
+              alt="Critiqued photo"
+              className="w-full h-auto object-contain"
+            />
           </Card>
 
           {/* Score */}
@@ -199,18 +232,36 @@ const DetailedCritique = () => {
 
           {/* Critique Sections in Cards */}
           {sections.length > 0 ? (
-            sections.map((section, i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-primary">{section.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                    {section.content.trim()}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+            sections.map((section, i) => {
+              const { text: cleanText, links } = extractLinks(section.content);
+              return (
+                <Card key={i}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base text-primary">{section.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm text-foreground leading-relaxed space-y-2">
+                      <p className="whitespace-pre-wrap">{cleanText}</p>
+                      {links.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {links.map((link, j) => (
+                            <a
+                              key={j}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary underline hover:text-primary/80"
+                            >
+                              {link.text}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
@@ -238,30 +289,12 @@ const DetailedCritique = () => {
             </Card>
           )}
 
-          {/* Continue Chat */}
+          {/* Continue Chat - Simple Input Only */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t("继续提问", "Continue Chat")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {messages.slice(1).map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                        msg.role === "user"
-                          ? "bg-primary/10 text-foreground"
-                          : "bg-secondary text-foreground"
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <CardContent>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -269,13 +302,13 @@ const DetailedCritique = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={t("输入问题...", "Ask a question...")}
-                  className="flex-1 bg-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/30"
+                  className="flex-1 bg-secondary rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/30"
                 />
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
                   size="icon"
-                  className="shrink-0"
+                  className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

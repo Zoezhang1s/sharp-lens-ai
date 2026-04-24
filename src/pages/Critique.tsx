@@ -53,22 +53,22 @@ const Critique = () => {
   const [showSimplified, setShowSimplified] = useState(false);
   const [personas] = useState<Persona[]>([
     {
-      name: "Annie Leibovitz",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-      style: "传奇人像摄影师",
-      critique: "这张照片的构图有问题，人物应该放在画面的三分线位置，而不是正中间。"
+      name: "王思聪",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop",
+      style: "娱乐圈评论员",
+      critique: "这照片拍得一般啊，网红感太重了，没有个人特色。建议找个好点的摄影师重新拍一组。"
     },
     {
-      name: "Trump",
-      avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop",
-      style: "前美国总统",
-      critique: "HUGE mistake! The lighting is terrible, very sad! Should have used natural light from the window."
+      name: "张艺谋",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+      style: "知名导演",
+      critique: "构图太平淡了，没有视觉张力。光线运用也不够讲究，显得人物肤色发灰。建议参考一下电影海报的用光方式。"
     },
     {
-      name: "Joe McNally",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
-      style: "国家地理摄影师",
-      critique: "The color grading feels off. Try warming up the skin tones a bit, and watch the background clutter."
+      name: "Taylor Swift",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
+      style: "国际巨星",
+      critique: "The styling is giving very mixed signals. Love the vibe but the pose feels awkward. Try a more natural stance and good lighting!"
     }
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,14 +101,31 @@ const Critique = () => {
       setMessages([userMsg]);
 
       // Create history record immediately when photo is uploaded
-      const title = t("照片点评中...", "Critique in progress...");
-      addRecord({ imageData: img, summary: t("正在等待AI点评...", "Waiting for AI critique..."), title, score: 0, messages: [userMsg] }).then((id) => {
+      addRecord({ imageData: img, summary: t("正在等待AI点评...", "Waiting for AI critique..."), title: t("照片点评中...", "Critique in progress..."), score: 0, messages: [userMsg] }).then((id) => {
         setHistoryId(id);
       });
 
       triggerCritique([userMsg], true);
     } else {
       navigate("/");
+    }
+  }, []);
+
+  // Check for in-progress critique on mount
+  useEffect(() => {
+    const inProgress = sessionStorage.getItem("critique-in-progress");
+    if (inProgress && !searchParams.get("history")) {
+      const { imageData: storedImage, messages: storedMessages, historyId: storedHid } = JSON.parse(inProgress);
+      if (storedImage && storedMessages.length > 0) {
+        setImageData(storedImage);
+        setMessages(storedMessages);
+        setHistoryId(storedHid);
+        // Resume the critique if it was interrupted
+        if (!storedMessages.some(m => m.role === "assistant")) {
+          triggerCritique(storedMessages, true);
+        }
+        sessionStorage.removeItem("critique-in-progress");
+      }
     }
   }, []);
 
@@ -128,6 +145,22 @@ const Critique = () => {
       updateRecord(historyId, { messages, score, title, summary });
     }, 1000);
   }, [messages, historyId]);
+
+  // Persist in-progress critique to sessionStorage for recovery
+  useEffect(() => {
+    if (messages.length > 0 && imageData && historyId) {
+      const hasAssistantResponse = messages.some(m => m.role === "assistant");
+      if (!hasAssistantResponse) {
+        sessionStorage.setItem("critique-in-progress", JSON.stringify({
+          imageData,
+          messages,
+          historyId,
+        }));
+      } else {
+        sessionStorage.removeItem("critique-in-progress");
+      }
+    }
+  }, [messages, imageData, historyId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -455,6 +488,36 @@ const Critique = () => {
     return lines[0] || "这张照片有点意思...";
   };
 
+  // Parse critique into sections by ## headers
+  const parseCritiqueSections = (content: string): { title: string; content: string }[] => {
+    const sections: { title: string; content: string }[] = [];
+    const lines = content.split("\n");
+    let currentSection = { title: "", content: "" };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("## ")) {
+        if (currentSection.title) {
+          sections.push(currentSection);
+        }
+        currentSection = { title: trimmed.replace("## ", ""), content: "" };
+      } else if (trimmed.startsWith("### ")) {
+        if (currentSection.title) {
+          sections.push(currentSection);
+        }
+        currentSection = { title: trimmed.replace("### ", ""), content: "" };
+      } else if (trimmed && !trimmed.startsWith("---") && !trimmed.match(/^\|.*\|$/)) {
+        if (currentSection.title || currentSection.content) {
+          currentSection.content += trimmed + " ";
+        }
+      }
+    }
+    if (currentSection.title) {
+      sections.push(currentSection);
+    }
+    return sections;
+  };
+
   // Share to WeChat/Web
   const handleShare = async () => {
     if (!navigator.share) {
@@ -478,63 +541,150 @@ const Critique = () => {
     }
   };
 
-  // Download critique as image
+  // Download critique as image - complete long page
   const handleDownload = async () => {
-    const contentEl = critiqueContentRef.current;
-    if (!contentEl) {
+    if (!imageData) {
       toast.error(t("无法生成图片", "Cannot generate image"));
       return;
     }
 
     try {
-      // Dynamic import html2canvas
       const html2canvas = (await import("html2canvas")).default;
 
-      // Create a container for the capture
+      // Get main critique content
+      const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
+      const score = getScore();
+      const oneLiner = getOneLinerCritique();
+
+      // Create a complete long page container
       const captureDiv = document.createElement("div");
       captureDiv.style.cssText = `
-        width: 600px;
+        width: 800px;
         padding: 40px;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
         color: white;
-        font-family: system-ui, -apple-system, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        min-height: 100vh;
       `;
 
-      // Add title
-      const titleEl = document.createElement("div");
-      titleEl.style.cssText = "font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;";
-      titleEl.textContent = t("你拍的啥 - 照片锐评", "WhatDidYouShoot - Photo Critique");
-      captureDiv.appendChild(titleEl);
+      // Header with logo text
+      const headerEl = document.createElement("div");
+      headerEl.style.cssText = "text-align: center; margin-bottom: 30px;";
+      headerEl.innerHTML = `
+        <div style="font-size: 14px; color: #f59e0b; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 5px;">你拍的啥</div>
+        <div style="font-size: 28px; font-weight: bold; color: white;">照片锐评报告</div>
+      `;
+      captureDiv.appendChild(headerEl);
 
-      // Add image
-      if (imageData) {
-        const imgEl = document.createElement("img");
-        imgEl.src = imageData;
-        imgEl.style.cssText = "width: 100%; border-radius: 12px; margin-bottom: 20px;";
-        captureDiv.appendChild(imgEl);
+      // Original Photo
+      const photoSection = document.createElement("div");
+      photoSection.style.cssText = "margin-bottom: 30px;";
+      photoSection.innerHTML = `
+        <div style="font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">原图</div>
+        <img src="${imageData}" style="width: 100%; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);" />
+      `;
+      captureDiv.appendChild(photoSection);
+
+      // Score Card
+      if (score !== null) {
+        const scoreSection = document.createElement("div");
+        scoreSection.style.cssText = "background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05)); border: 1px solid rgba(245,158,11,0.3); border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 30px;";
+        scoreSection.innerHTML = `
+          <div style="font-size: 48px; font-weight: bold; color: #f59e0b; margin-bottom: 5px;">${score}/100</div>
+          <div style="font-size: 14px; color: #888;">综合评分</div>
+        `;
+        captureDiv.appendChild(scoreSection);
       }
 
-      // Add critique text
-      const critiqueText = getOneLinerCritique();
-      const critiqueEl = document.createElement("div");
-      critiqueEl.style.cssText = "font-size: 16px; line-height: 1.6; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px;";
-      critiqueEl.textContent = critiqueText;
-      captureDiv.appendChild(critiqueEl);
-
-      // Add score
-      const scoreMatch = messages.find(m => m.role === "assistant")?.content.match(/(\d{1,3})\s*\/\s*100/);
-      if (scoreMatch) {
-        const scoreEl = document.createElement("div");
-        scoreEl.style.cssText = "font-size: 36px; font-weight: bold; text-align: center; margin-top: 20px; color: #f59e0b;";
-        scoreEl.textContent = `${scoreMatch[1]}/100`;
-        captureDiv.appendChild(scoreEl);
+      // One-liner Critique
+      if (oneLiner) {
+        const oneLinerSection = document.createElement("div");
+        oneLinerSection.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; margin-bottom: 30px;";
+        oneLinerSection.innerHTML = `
+          <div style="font-size: 12px; color: #f59e0b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px;">💥 一句话暴击</div>
+          <div style="font-size: 16px; line-height: 1.8; color: white;">${oneLiner}</div>
+        `;
+        captureDiv.appendChild(oneLinerSection);
       }
+
+      // Persona Critiques (Group Chat)
+      const groupSection = document.createElement("div");
+      groupSection.style.cssText = "margin-bottom: 30px;";
+      groupSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">群友锐评</div>`;
+
+      personas.forEach(persona => {
+        const personaCard = document.createElement("div");
+        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; gap: 12px; align-items: flex-start;";
+        personaCard.innerHTML = `
+          <img src="${persona.avatar}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-weight: 600; font-size: 14px; color: white;">${persona.name}</span>
+              <span style="font-size: 11px; color: #888; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">${persona.style}</span>
+            </div>
+            <div style="font-size: 14px; line-height: 1.6; color: #ccc;">${persona.critique}</div>
+          </div>
+        `;
+        groupSection.appendChild(personaCard);
+      });
+      captureDiv.appendChild(groupSection);
+
+      // AI Reference Image (if exists) - shown side by side with original
+      const generatedImageMsg = messages.find(m => m.generatedImage);
+      if (generatedImageMsg?.generatedImage) {
+        const aiSection = document.createElement("div");
+        aiSection.style.cssText = "margin-bottom: 30px;";
+        aiSection.innerHTML = `
+          <div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">AI优化参考图</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 8px; text-align: center;">原图</div>
+              <img src="${imageData}" style="width: 100%; border-radius: 12px;" />
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #666; margin-bottom: 8px; text-align: center;">AI优化</div>
+              <img src="${generatedImageMsg.generatedImage}" style="width: 100%; border-radius: 12px;" />
+            </div>
+          </div>
+        `;
+        captureDiv.appendChild(aiSection);
+      }
+
+      // Detailed Critique Sections
+      if (assistantMsg) {
+        const sections = parseCritiqueSections(assistantMsg.content);
+        if (sections.length > 0) {
+          const detailedSection = document.createElement("div");
+          detailedSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">详细点评</div>`;
+
+          sections.forEach(section => {
+            const sectionCard = document.createElement("div");
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px;";
+            sectionCard.innerHTML = `
+              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${section.title}</div>
+              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${section.content.trim().replace(/\*\*\*/g, '').replace(/\*\*/g, '').replace(/\n/g, '<br/>')}</div>
+            `;
+            detailedSection.appendChild(sectionCard);
+          });
+          captureDiv.appendChild(detailedSection);
+        }
+      }
+
+      // Footer
+      const footerEl = document.createElement("div");
+      footerEl.style.cssText = "text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);";
+      footerEl.innerHTML = `
+        <div style="font-size: 12px; color: #555;">由 AI 提供 · 你拍的啥</div>
+      `;
+      captureDiv.appendChild(footerEl);
 
       document.body.appendChild(captureDiv);
 
       const canvas = await html2canvas(captureDiv, {
         backgroundColor: null,
         scale: 2,
+        useCORS: true,
+        allowTaint: true,
       });
 
       document.body.removeChild(captureDiv);
@@ -599,10 +749,16 @@ const Critique = () => {
         </div>
       </div>
 
-      {/* Simplified View */}
-      {showSimplified && score !== null && (
+      {/* Simplified View - Default view when critique is complete */}
+      {(showSimplified || score !== null) && score !== null && (
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-lg mx-auto space-y-6">
+            {/* Back to Full Button */}
+            <Button variant="ghost" onClick={() => setShowSimplified(false)} className="mb-2">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              {t("返回完整点评", "Back to Full Critique")}
+            </Button>
+
             {/* Score Card */}
             <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
               <CardContent className="pt-6 text-center">
@@ -619,7 +775,7 @@ const Critique = () => {
               </CardContent>
             </Card>
 
-            {/* Persona Critiques */}
+            {/* Persona Critiques - In Chinese */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("群友锐评", "Group Critique")}
@@ -628,9 +784,9 @@ const Critique = () => {
                 <Card key={i} className="hover:shadow-md transition-shadow">
                   <CardContent className="pt-4">
                     <div className="flex items-start gap-3">
-                      <Avatar className="w-10 h-10 shrink-0">
+                      <Avatar className="w-12 h-12 shrink-0">
                         <AvatarImage src={persona.avatar} alt={persona.name} />
-                        <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                        <AvatarFallback className="bg-primary/20 text-primary font-bold">{persona.name[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -652,7 +808,7 @@ const Critique = () => {
               <Button
                 onClick={() => navigate(`/critique/${historyId}`)}
                 className="w-full"
-                variant="outline"
+                variant="default"
               >
                 {t("查看详细锐评", "View Detailed Critique")}
                 <ChevronRight className="w-4 h-4 ml-1" />
