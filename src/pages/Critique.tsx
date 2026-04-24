@@ -1303,14 +1303,14 @@ const Critique = () => {
         const sections = parseCritiqueSections(assistantMsg.content);
         const filteredSections = sections.filter((s) => {
           const t = s.title;
-          // Skip one-liner/score (already shown above) and learning/reference sections
+          // Skip opening roast/score (already shown above) and learning/reference sections.
+          // Keep "一句话总结 / One-liner Summary" — it's the closing wrap-up.
           return !(
             t.includes("一句话暴击") ||
-            t.includes("一句话总结") ||
             t.includes("Opening Roast") ||
-            t.includes("One-liner") ||
             t.includes("评分") ||
-            t.includes("Score") ||
+            /Score\s*[:：]/i.test(t) ||
+            /^Score/i.test(t.trim()) ||
             t.includes("学习参考") ||
             t.includes("学习") ||
             t.includes("参考") ||
