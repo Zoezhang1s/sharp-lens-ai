@@ -50,7 +50,7 @@ const SYSTEM_EN = `You generate "group chat critiques" for a photo: exactly 3 di
    - Give a real, sharp, actionable photo tip (angle, light direction, pose, composition, color)
    - Mimic the persona's real voice and catchphrases
    - Be completely different from the other 2 personas
-   - 70–120 chars
+   - 25–45 chars only — one sharp punchline + one concrete tip, no filler
 3. Pick 3 different personas every time. Never reuse the same line-up.
 
 [Return JSON only, no explanation]
