@@ -277,13 +277,14 @@ Address composition, lighting, pose, expression, camera angle, background, color
 
     // Reinforce identity-lock + face-sharpness + must-improve at prompt level
     const identityLock = language === "zh"
-      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境，同一镜头视角范围与画幅比例。【人脸锐度锁】：人脸必须高清清晰锐利，对焦点落在眼睛上，皮肤纹理自然，绝不能模糊、变形、糊脸、双眼不对称、塑料感。【优化要求】：在保持以上一致性的前提下，必须按照点评修正构图/光线/姿势/表情/机位/背景/色彩，输出图必须比原图明显更好看更专业，绝不能与原图几乎一样。"
-      : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same features, same hair, same skin tone, same body, same age, same outfit, same environment. [FACE SHARPNESS LOCK]: face must be sharp, high-resolution, eyes in focus, natural skin texture — never blurry, distorted, asymmetric, or plastic. [IMPROVEMENT REQUIRED]: while keeping identity, you MUST fix composition, lighting, pose, expression, angle, background, and color per the critique. The output must look visibly better and more professional than the original, never near-identical.";
+      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官比例，同一眼型鼻型嘴型眉形，同一发型发色，同一肤色，同一年龄感，同一身衣服与配饰，同一环境与主体场景元素，不允许换人、不允许换脸、不允许AI重绘成陌生长相。【人脸锐度锁】：人脸必须高清、干净、锐利，对焦点必须落在眼睛上，眼睛鼻子嘴巴结构完整自然，绝不能模糊、拉扯、扭曲、双眼不对称、糊五官、塑料皮、嘴部错位、牙齿融合、手指畸形。【强修要求】：必须严格根据锐评和问题分析逐项修复缺点，尤其是构图、光线、姿势、表情、机位、背景、色彩与清晰度；成片必须比原图有肉眼可见的明显优化，不能只是小修小补，更不能和原图几乎一样。"
+      : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same feature proportions, same eyes, nose, mouth, brows, same hair, same skin tone, same age impression, same outfit, same accessories, same environment and scene elements. No face swap, no new person, no AI replacement face. [FACE SHARPNESS LOCK]: face must be clean, high-resolution, and sharp with eyes in focus; eyes, nose, mouth, skin texture, teeth, and fingers must remain natural and undistorted. No blur, stretch, asymmetry, mushy features, plastic skin, warped mouth, fused teeth, or deformed hands. [MANDATORY FIXES]: you must fix the flaws from the critique and analysis one by one, especially composition, lighting, pose, expression, angle, background, color, and sharpness. The result must be visibly improved, not lightly tweaked and never near-identical.";
     const negativeLock = language === "zh"
-      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止把补光灯/灯架/穿帮器材/杂乱路人加入画面、禁止千篇一律的奶油暖调、禁止模糊脸/变形脸/糊五官/塑料皮肤/磨皮过度、禁止输出和原图几乎一样的结果（必须按点评做出明显改进）。"
-      : "Negative: no face swap, no different person, no beautified influencer face, no altered features, no changed hair or outfit, no different scene, no lights/equipment/bystanders, no generic warm cream tone, no blurry/distorted face, no plastic over-smoothed skin, no output that looks essentially identical to the original (must show clear improvements per the critique).";
+      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式脸/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止改年龄感和身材、禁止换场景、禁止把补光灯/灯架/穿帮器材/杂乱路人加入画面、禁止千篇一律奶油暖调、禁止柔焦糊脸、禁止脸部和手部畸形、禁止只有磨皮不修问题、禁止输出与原图构图和光线都几乎相同的结果。"
+      : "Negative: no face swap, no different person, no influencer AI face, no altered facial proportions, no changed hair or outfit, no changed age/body impression, no different scene, no lights/equipment/bystanders, no generic creamy warm grading, no soft blurry face, no face/hand deformation, no simple beauty retouch without fixing flaws, and no output whose composition and lighting remain almost the same as the original.";
     imagePrompt = `${identityLock} ${negativeLock} ${imagePrompt}`;
 
+    console.log("Image analysis:", analysisResult);
     console.log("Generated image prompt:", imagePrompt);
 
     // Step 2: Doubao Seedream 4.0 image-to-image with the original as reference
@@ -294,7 +295,7 @@ Address composition, lighting, pose, expression, camera angle, background, color
     const doubaoBody: Record<string, unknown> = {
       model: "doubao-seedream-4-0-250828",
       prompt: imagePrompt,
-      sequential_image_generation: "disabled",
+      sequential_image_generation: "enabled",
       response_format: "url",
       size: `${normalizedWidth}x${normalizedHeight}`,
       stream: false,
