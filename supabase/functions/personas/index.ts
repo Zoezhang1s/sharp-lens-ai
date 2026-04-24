@@ -103,8 +103,8 @@ serve(async (req) => {
         type: "text",
         text:
           (language === "zh"
-            ? `【主锐评】：\n${critique}\n\n请基于这张照片和这份锐评，只输出 3 位人物：1 位中国人、1 位外国人、1 位离谱反差角色。三个人都要针对这张照片本身，语气像本人，说法尖锐好笑但有干货。随机种子：${variety}`
-            : `[Main critique]:\n${critique}\n\nReturn exactly 3 personas only: 1 Chinese-speaking, 1 foreign, 1 absurd contrast character. All must be photo-specific, sharp, funny, and actionable. Variety seed: ${variety}`),
+            ? `【主锐评】：\n${critique}\n\n请基于这张照片和这份锐评，只输出 3 位人物：1 位中国人、1 位外国人、1 位离谱反差角色。\n\n要求：\n- 三个人**切入角度必须完全不同**（光线 / 构图姿势 / 情绪色调氛围 / 镜头焦段 / 后期 / 穿搭场景 任选三个不同方向）\n- 三个人**吐槽点和夸点不能重复**\n- 每个人**结合自己的专业背景和招牌风格**说话，用本人口头禅\n- 每条 70~110 字，三段节奏：标志性开场吐槽 → 针对照片的犀利点评 → 具体可执行的干货建议\n- 搞笑、有梗、人味儿足，但建议要真的有用\n\n随机种子：${variety}`
+            : `[Main critique]:\n${critique}\n\nReturn exactly 3 personas: 1 Chinese-speaking, 1 foreign, 1 absurd contrast character.\n\nRequirements:\n- The 3 must attack from **completely different angles** (light / composition & pose / mood color & vibe / lens & focal length / post-processing / styling — pick 3 different ones)\n- The 3 must NOT roast the same flaw or praise the same strength\n- Each persona uses their **own professional background and signature voice**, with their catchphrases\n- 60–90 chars each, three beats: signature opener → photo-specific sharp critique → concrete actionable tip\n- Funny, meme-y, full of personality, but the tip must be genuinely useful\n\nVariety seed: ${variety}`),
       },
     ];
     if (imageData) {
