@@ -27,6 +27,8 @@ interface Message {
 }
 
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
+const PERSONAS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/personas`;
+const PERSONAS_CACHE_KEY = "photo-critique-personas-cache";
 
 const detectStyleFromText = (text: string): string | undefined => {
   for (const style of STYLE_DATA) {
