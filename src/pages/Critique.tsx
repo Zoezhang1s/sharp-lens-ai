@@ -170,26 +170,31 @@ const Critique = () => {
         // Show simplified view when entering from history
         setFromHistory(true);
 
-        // Check if critique is complete (has assistant with generatedImage) or needs retry
-        const hasCompleteResponse = record.messages.some((m: any) => m.role === "assistant" && m.generatedImage);
-        const hasPartialResponse = record.messages.some((m: any) => m.role === "assistant" && !m.generatedImage);
+        // Check what we have in this history record
+        const hasAssistantText = record.messages.some(
+          (m: any) => m.role === "assistant" && !m.generatedImage && (m.content || "").trim().length > 0
+        );
+        const hasGeneratedImage = record.messages.some(
+          (m: any) => m.role === "assistant" && m.generatedImage
+        );
 
-        if (hasCompleteResponse) {
-          // Critique is complete, nothing to do
-        } else if (hasPartialResponse || !record.messages.some((m: any) => m.role === "assistant")) {
-          // Partial or no response - need to retry
-          // Clear the partial message and retry with just the user message
+        // Mark critique as already started so polling/effects don't re-trigger anything
+        critiqueStartedRef.current = true;
+
+        if (!hasAssistantText && !hasGeneratedImage) {
+          // No assistant content at all — only then run a fresh critique
           const userMsg = record.messages.find((m: any) => m.role === "user");
           if (userMsg) {
+            critiqueStartedRef.current = false; // allow trigger
             setIsLoading(true);
-            // Clear messages to remove partial assistant response
             setMessages([userMsg as Message]);
-            // Retry after a short delay to let state update
             setTimeout(() => {
               triggerCritiqueWithRetry([userMsg as Message], true);
             }, 100);
           }
         }
+        // Otherwise: keep what we already have (text-only or text+image),
+        // do NOT re-run the critique and do NOT regenerate the image.
 
         // Auto-expand detailed view if expanded=true in URL
         if (searchParams.get("expanded") === "true") {
