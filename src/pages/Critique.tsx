@@ -1175,6 +1175,19 @@ const Critique = () => {
 
       document.body.appendChild(captureDiv);
 
+      // Wait for all images inside captureDiv to finish loading before snapshot
+      const allImgs = Array.from(captureDiv.querySelectorAll("img"));
+      await Promise.all(
+        allImgs.map((img) =>
+          img.complete && img.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise<void>((res) => {
+                img.addEventListener("load", () => res(), { once: true });
+                img.addEventListener("error", () => res(), { once: true });
+              })
+        )
+      );
+
       const canvas = await html2canvas(captureDiv, {
         backgroundColor: "#0a0a0f",
         scale: 2,
