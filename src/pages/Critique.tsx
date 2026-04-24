@@ -59,9 +59,101 @@ const Critique = () => {
   const critiqueStartedRef = useRef(false);
   const [personas, setPersonas] = useState<Persona[]>([]);
 
-  // Generate dynamic personas based on critique theme
-  const generateDynamicPersonas = (critiqueText: string): Persona[] => {
-    const text = critiqueText.toLowerCase();
+  // Persona cache helpers — keyed by historyId so re-entering shows same personas
+  const loadCachedPersonas = (hid: string | null): Persona[] | null => {
+    if (!hid) return null;
+    try {
+      const raw = localStorage.getItem(PERSONAS_CACHE_KEY);
+      if (!raw) return null;
+      const cache = JSON.parse(raw);
+      return cache[hid] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveCachedPersonas = (hid: string | null, list: Persona[]) => {
+    if (!hid) return;
+    try {
+      const raw = localStorage.getItem(PERSONAS_CACHE_KEY);
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[hid] = list;
+      const keys = Object.keys(cache);
+      if (keys.length > 50) {
+        const trimmed: Record<string, Persona[]> = {};
+        keys.slice(-50).forEach((k) => { trimmed[k] = cache[k]; });
+        localStorage.setItem(PERSONAS_CACHE_KEY, JSON.stringify(trimmed));
+      } else {
+        localStorage.setItem(PERSONAS_CACHE_KEY, JSON.stringify(cache));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const personasFetchingRef = useRef(false);
+
+  // Fetch dynamic, photo-aware personas from the edge function
+  const fetchPersonas = async (critiqueText: string, refImage: string | null) => {
+    if (personasFetchingRef.current) return;
+    personasFetchingRef.current = true;
+    try {
+      const resp = await fetch(PERSONAS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          critique: critiqueText,
+          imageData: refImage,
+          language: lang === "zh" ? "zh" : "en",
+        }),
+      });
+      if (!resp.ok) {
+        console.error("Personas fetch failed", resp.status);
+        return;
+      }
+      const data = await resp.json();
+      const list: Persona[] = (data.personas || []).map((p: any) => ({
+        name: p.name || "",
+        avatar: "",
+        style: p.style || "",
+        critique: p.critique || "",
+        translation: p.translation || undefined,
+        lang: p.lang || "zh",
+      }));
+      if (list.length > 0) {
+        setPersonas(list);
+        saveCachedPersonas(historyId, list);
+      }
+    } catch (e) {
+      console.error("Personas error", e);
+    } finally {
+      personasFetchingRef.current = false;
+    }
+  };
+
+  // When critique is ready, load cached personas or generate fresh ones
+  useEffect(() => {
+    if (personas.length > 0) return;
+    const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
+    if (!assistantMsg || !assistantMsg.content || assistantMsg.content.length < 80) return;
+    // Try cache first (so re-entering history shows the same personas)
+    const cached = loadCachedPersonas(historyId);
+    if (cached && cached.length > 0) {
+      setPersonas(cached);
+      return;
+    }
+    // Wait until streaming has likely finished before fetching
+    if (isLoading) return;
+    const refImage =
+      [...messages].reverse().find((m) => m.role === "user" && m.imageData)?.imageData ||
+      imageData ||
+      null;
+    fetchPersonas(assistantMsg.content, refImage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, historyId, isLoading]);
 
     // All persona pools - each with DISTINCT perspective and sharp critique style
     const allPersonas: Persona[] = [
