@@ -1172,10 +1172,10 @@ const Critique = () => {
       // One-liner Critique
       if (oneLiner) {
         const oneLinerSection = document.createElement("div");
-        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 26px; margin-bottom: 40px;";
+        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 28px 26px; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px; text-align: center;";
         oneLinerSection.innerHTML = `
-          <div style="font-size: 22px; color: #f59e0b; margin-bottom: 14px; font-weight: 700;">💥 一句话暴击</div>
-          <div style="font-size: 28px; line-height: 1.6; color: white; font-weight: 600;">${oneLiner}</div>
+          <div style="font-size: 22px; color: #f59e0b; font-weight: 700; line-height: 1; margin: 0;">💥 一句话暴击</div>
+          <div style="font-size: 28px; line-height: 1.5; color: white; font-weight: 600; margin: 0;">${oneLiner}</div>
         `;
         captureDiv.appendChild(oneLinerSection);
       }
