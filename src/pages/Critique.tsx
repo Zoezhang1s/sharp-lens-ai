@@ -1659,15 +1659,15 @@ const Critique = () => {
               <div className="space-y-4">
                 {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "")
                   .filter((section) => {
-                    // Hide one-liner roast and score sections — they're shown above
+                    // Hide only the opening roast and score sections — they're shown above.
+                    // Keep "一句话总结 / One-liner Summary" which is the closing wrap-up.
                     const t = section.title;
                     return !(
                       t.includes("一句话暴击") ||
-                      t.includes("一句话总结") ||
                       t.includes("Opening Roast") ||
-                      t.includes("One-liner") ||
                       t.includes("评分") ||
-                      t.includes("Score")
+                      /Score\s*[:：]/i.test(t) ||
+                      /^Score/i.test(t.trim())
                     );
                   })
                   .map((section, i) => {
