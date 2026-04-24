@@ -119,7 +119,7 @@ const Critique = () => {
         setHistoryId(id);
       });
 
-      triggerCritique(userMsg, true);
+      triggerCritique([userMsg], true);
     } else {
       navigate("/");
     }
