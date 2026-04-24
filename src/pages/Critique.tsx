@@ -1205,20 +1205,65 @@ const Critique = () => {
       });
       captureDiv.appendChild(groupSection);
 
-      // Detailed Critique Sections
+      // Detailed Critique Sections — preserve highlights, skip "学习参考"/"Reference" sections
       if (assistantMsg) {
         const sections = parseCritiqueSections(assistantMsg.content);
-        if (sections.length > 0) {
+        const filteredSections = sections.filter((s) => {
+          const t = s.title;
+          // Skip one-liner/score (already shown above) and learning/reference sections
+          return !(
+            t.includes("一句话暴击") ||
+            t.includes("一句话总结") ||
+            t.includes("Opening Roast") ||
+            t.includes("One-liner") ||
+            t.includes("评分") ||
+            t.includes("Score") ||
+            t.includes("学习参考") ||
+            t.includes("学习") ||
+            t.includes("参考") ||
+            t.toLowerCase().includes("learning") ||
+            t.toLowerCase().includes("reference") ||
+            t.toLowerCase().includes("resource")
+          );
+        });
+
+        // Highlight key phrases (mirror UI keyPhrases) and escape HTML safely
+        const keyPhrases = [
+          "建议","重点","关键","必须","一定","不要","避免","提高","改善","加强","注意","调整","改变",
+          "构图","光线","曝光","对焦","白平衡","色彩","姿势","表情","背景","光圈","快门",
+          "ISO","焦段","角度","机位","时段",
+        ];
+        const escapeHtml = (s: string) => s
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+        const highlightHtml = (raw: string) => {
+          const cleaned = cleanForDownload(raw);
+          return cleaned
+            .split("\n")
+            .map((line) => {
+              if (!line.trim()) return "";
+              let html = escapeHtml(line);
+              for (const phrase of keyPhrases) {
+                const regex = new RegExp(`(${phrase}[^，。,.\\n]{0,40})`, "g");
+                html = html.replace(regex, '<strong style="color:#f59e0b;font-weight:600;">$1</strong>');
+              }
+              return html;
+            })
+            .filter(Boolean)
+            .join("<br/>");
+        };
+
+        if (filteredSections.length > 0) {
           const detailedSection = document.createElement("div");
           detailedSection.style.cssText = "margin-top: 20px;";
           detailedSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">详细锐评</div>`;
 
-          sections.forEach(section => {
+          filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
             sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${cleanForDownload(section.title)}</div>
-              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${cleanForDownload(section.content).replace(/\n/g, '<br/>')}</div>
+              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
