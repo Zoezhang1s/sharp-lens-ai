@@ -1205,9 +1205,9 @@ const Critique = () => {
 
         personaCard.innerHTML = `
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0;">
-            <span style="font-weight: 700; font-size: 22px; color: white; line-height: 1.2;">${persona.name}</span>
-            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 12px; line-height: 1.4;">${persona.style}</span>
-            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 4px 12px; border-radius: 12px; font-weight: 600; line-height: 1.4;">${langCode.toUpperCase()}</span>
+            <span style="font-weight: 700; font-size: 22px; color: white; line-height: 1.2; display: inline-flex; align-items: center;">${persona.name}</span>
+            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 12px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${persona.style}</span>
+            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 12px; font-weight: 600; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${langCode.toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
