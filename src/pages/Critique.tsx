@@ -99,6 +99,13 @@ const Critique = () => {
         imageData: img,
       };
       setMessages([userMsg]);
+
+      // Create history record immediately when photo is uploaded
+      const title = t("照片点评中...", "Critique in progress...");
+      addRecord({ imageData: img, summary: t("正在等待AI点评...", "Waiting for AI critique..."), title, score: 0, messages: [userMsg] }).then((id) => {
+        setHistoryId(id);
+      });
+
       triggerCritique([userMsg], true);
     } else {
       navigate("/");
@@ -108,25 +115,19 @@ const Critique = () => {
   // Save to history whenever messages change (after initial load)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
-    if (messages.length === 0 || !imageData) return;
+    if (messages.length === 0 || !imageData || !historyId) return;
     clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       const assistantMsgs = messages.filter(m => m.role === "assistant" && !m.generatedImage);
-      const lastAssistant = assistantMsgs[0]?.content || "";
+      const lastAssistant = assistantMsgs[assistantMsgs.length - 1]?.content || "";
       const score = extractScoreFromText(assistantMsgs.map(m => m.content).join("\n"));
       const title = generateTitle(lastAssistant, lang);
       const summary = lastAssistant.replace(/[#*>\n]/g, " ").trim().slice(0, 100);
 
-      // If we have a historyId, update the record
-      if (historyId) {
-        updateRecord(historyId, { messages, score, title, summary });
-      }
-      // If no historyId yet but we have a user message with image, create record immediately
-      else if (messages.some(m => m.role === "user" && m.imageData)) {
-        addRecord({ imageData, summary, title, score, messages }).then((id) => setHistoryId(id));
-      }
+      // Always update the existing record
+      updateRecord(historyId, { messages, score, title, summary });
     }, 1000);
-  }, [messages]);
+  }, [messages, historyId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
