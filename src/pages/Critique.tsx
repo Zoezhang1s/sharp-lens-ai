@@ -11,7 +11,6 @@ import { useHistory, extractScoreFromText, generateTitle } from "@/hooks/useHist
 
 interface Persona {
   name: string;
-  avatar: string;
   style: string;
   critique: string;
   translation?: string; // Chinese translation for foreign personas
@@ -42,6 +41,31 @@ const detectStyleFromText = (text: string): string | undefined => {
   return undefined;
 };
 
+const buildPersonaBrief = (text: string): string => {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("|") && !line.startsWith("---") && line !== "&nbsp;")
+    .slice(0, 16)
+    .join("\n")
+    .slice(0, 1600);
+};
+
+const getLanguageBadgeClass = (langCode?: string) => {
+  switch ((langCode || "zh").toLowerCase()) {
+    case "en":
+      return "bg-primary/10 text-primary border border-primary/20";
+    case "ja":
+      return "bg-accent text-accent-foreground border border-border/50";
+    case "ko":
+      return "bg-secondary text-secondary-foreground border border-border/50";
+    case "fr":
+      return "bg-muted text-muted-foreground border border-border/50";
+    default:
+      return "bg-primary/10 text-primary border border-primary/20";
+  }
+};
+
 const Critique = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
@@ -62,6 +86,8 @@ const Critique = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addRecord, updateRecord, getRecord } = useHistory();
   const [personas, setPersonas] = useState<Persona[]>([]);
+  const [isLoadingPersonas, setIsLoadingPersonas] = useState(false);
+  const [personasError, setPersonasError] = useState<string | null>(null);
 
   // Persona cache helpers — keyed by historyId so re-entering shows same personas
   const loadCachedPersonas = (hid: string | null): Persona[] | null => {
@@ -101,40 +127,77 @@ const Critique = () => {
   const fetchPersonas = async (critiqueText: string, refImage: string | null) => {
     if (personasFetchingRef.current) return;
     personasFetchingRef.current = true;
+    setIsLoadingPersonas(true);
+    setPersonasError(null);
     try {
-      const resp = await fetch(PERSONAS_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          critique: critiqueText,
-          imageData: refImage,
-          language: lang === "zh" ? "zh" : "en",
-        }),
-      });
+      const { downscaleImage } = await import("@/lib/imageUtils");
+      const brief = buildPersonaBrief(critiqueText);
+      const smallImage = refImage ? await downscaleImage(refImage, 768, 0.72) : null;
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 25000);
+      let resp: Response;
+
+      try {
+        resp = await fetch(PERSONAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: smallImage,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+          signal: controller.signal,
+        });
+      } catch (firstError) {
+        resp = await fetch(PERSONAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: null,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+        });
+        console.warn("Personas retry without image", firstError);
+      } finally {
+        window.clearTimeout(timeout);
+      }
+
       if (!resp.ok) {
-        console.error("Personas fetch failed", resp.status);
+        const errText = await resp.text().catch(() => "");
+        console.error("Personas fetch failed", resp.status, errText);
+        setPersonasError(t("群友锐评掉线了，请稍后再试", "Group critique is temporarily unavailable"));
         return;
       }
+
       const data = await resp.json();
       const list: Persona[] = (data.personas || []).map((p: any) => ({
         name: p.name || "",
-        avatar: "",
         style: p.style || "",
         critique: p.critique || "",
         translation: p.translation || undefined,
         lang: p.lang || "zh",
       }));
+
       if (list.length > 0) {
         setPersonas(list);
         saveCachedPersonas(historyId, list);
+      } else {
+        setPersonasError(t("群友今天嘴替失踪了", "Group critique came back empty"));
       }
     } catch (e) {
       console.error("Personas error", e);
+      setPersonasError(t("群友锐评生成失败，请重试", "Failed to generate group critique"));
     } finally {
       personasFetchingRef.current = false;
+      setIsLoadingPersonas(false);
     }
   };
 
@@ -147,6 +210,7 @@ const Critique = () => {
     const cached = loadCachedPersonas(historyId);
     if (cached && cached.length > 0) {
       setPersonas(cached);
+      setPersonasError(null);
       return;
     }
     // Wait until streaming has likely finished before fetching
