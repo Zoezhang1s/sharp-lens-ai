@@ -57,6 +57,10 @@ const Critique = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [, setFromHistory] = useState(false);
   const critiqueStartedRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const critiqueContentRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addRecord, updateRecord, getRecord } = useHistory();
   const [personas, setPersonas] = useState<Persona[]>([]);
 
   // Persona cache helpers — keyed by historyId so re-entering shows same personas
