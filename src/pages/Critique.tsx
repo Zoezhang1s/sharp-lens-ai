@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X, Sparkles, BookOpen, Share2, Download, ChevronRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
 import { STYLE_DATA, STYLE_NAME_MAP } from "@/data/styleData";
@@ -51,24 +50,25 @@ const Critique = () => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [showSimplified, setShowSimplified] = useState(false);
+  const [fromHistory, setFromHistory] = useState(false);
   const [personas] = useState<Persona[]>([
     {
       name: "王思聪",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop",
-      style: "娱乐圈评论员",
-      critique: "这照片拍得一般啊，网红感太重了，没有个人特色。建议找个好点的摄影师重新拍一组。"
+      avatar: "",
+      style: "娱乐圈纪委书记",
+      critique: "哎呦，这拍的啥玩意儿？一看就是美颜滤镜开满了，连亲妈都认不出来。你说你花这功夫修图，不如找个好摄影师给你好好拍一张。拿得出手吗？发朋友圈都嫌丢人。"
     },
     {
       name: "张艺谋",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-      style: "知名导演",
-      critique: "构图太平淡了，没有视觉张力。光线运用也不够讲究，显得人物肤色发灰。建议参考一下电影海报的用光方式。"
+      avatar: "",
+      style: "国师级导演",
+      critique: "摄影是光影的艺术，你这光打得跟恐怖片似的。构图太满，留白都没有，显得局促。色彩也不行，要么太艳俗要么发灰。我拍电影讲究个氛围感，你这个嘛……回头给你发个参考片，自己体会。"
     },
     {
-      name: "Taylor Swift",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
-      style: "国际巨星",
-      critique: "The styling is giving very mixed signals. Love the vibe but the pose feels awkward. Try a more natural stance and good lighting!"
+      name: "方文山",
+      avatar: "",
+      style: "顶级词作家",
+      critique: "你这照片啊，就像一首没有韵脚的诗，少了点意境。画面是死的，灵魂是空的。好的照片会说话，你这张哑巴了。下次拍的时候想着，你要表达什么故事，再按快门。"
     }
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -85,6 +85,11 @@ const Critique = () => {
         setHistoryId(hid);
         setImageData(record.imageData);
         setMessages(record.messages as Message[]);
+        // Show simplified view when entering from history
+        setFromHistory(true);
+        if (record.score > 0) {
+          setShowSimplified(true);
+        }
 
         // If critique is still in progress (no assistant response yet), resume it
         const hasAssistantResponse = record.messages.some((m: any) => m.role === "assistant");
@@ -845,7 +850,7 @@ const Critique = () => {
               </CardContent>
             </Card>
 
-            {/* Persona Critiques - In Chinese */}
+            {/* Persona Critiques - In Chinese, no avatars */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("群友锐评", "Group Critique")}
@@ -853,25 +858,49 @@ const Critique = () => {
               {personas.map((persona, i) => (
                 <Card key={i} className="hover:shadow-md transition-shadow">
                   <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="w-12 h-12 shrink-0">
-                        <AvatarImage src={persona.avatar} alt={persona.name} />
-                        <AvatarFallback className="bg-primary/20 text-primary font-bold">{persona.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm">{persona.name}</span>
-                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                            {persona.style}
-                          </span>
-                        </div>
-                        <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
-                      </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-bold text-sm text-foreground">{persona.name}</span>
+                      <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                        {persona.style}
+                      </span>
                     </div>
+                    <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            {/* AI Reference Image - Side by Side Comparison */}
+            {messages.some(m => m.generatedImage) && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    {t("AI优化参考图", "AI Optimized Reference")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
+                      <img
+                        src={imageData!}
+                        alt="Original"
+                        className="w-full rounded-lg object-contain"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground text-center mb-2">{t("AI优化", "AI Optimized")}</p>
+                      <img
+                        src={messages.find(m => m.generatedImage)?.generatedImage}
+                        alt="AI Generated"
+                        className="w-full rounded-lg object-contain"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* View Detailed Button */}
             {historyId && (
