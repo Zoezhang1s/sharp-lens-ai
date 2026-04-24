@@ -60,137 +60,139 @@ const Critique = () => {
   // Generate dynamic personas based on critique theme
   const generateDynamicPersonas = (critiqueText: string): Persona[] => {
     const text = critiqueText.toLowerCase();
-    const personas: Persona[] = [];
 
-    // Detect photo themes
-    const isOutdoor = text.includes("户外") || text.includes("室外") || text.includes("大自然");
+    // All persona pools - each with DISTINCT perspective and sharp critique style
+    const allPersonas: Persona[] = [
+      // === 摄影专业人士 - 技术派 ===
+      { name: "陈漫", avatar: "", style: "时尚摄影师", critique: "光打偏了。侧光还是逆光要先想清楚，主光要在模特30-45度角，轮廓光才立体。", lang: "zh" },
+      { name: "张艺谋", avatar: "", style: "电影导演", critique: "色彩没有主调。红是红绿是绿，互相打架。定一个氛围色，所有颜色往那边靠。", lang: "zh" },
+      { name: "Annie Leibovitz", avatar: "", style: "人像大师", critique: "Stiff. Get them moving, laughing, then shoot in bursts. The best portraits happen when people forget the camera.", translation: "太僵硬了。让他们动起来、笑，然后连拍。最好的肖像发生在人们忘记相机的时候。", lang: "en" },
+      { name: "森山大道", avatar: "", style: "街头摄影", critique: "街拍要等。等那个人走到光里，等自行车骑过，等影子拉长。你的照片全是抓拍，没有预判。", lang: "zh" },
+      { name: "荒木经惟", avatar: "", style: "日本摄影大师", critique: "被写体を愛してない。撮影前に5分会話しろ。空気が変わると、写りも変わる。", translation: "没有爱被摄体。拍摄前先聊5分钟。空气变了，拍出来也会变。", lang: "ja" },
+
+      // === 搞笑反差 - 毒舌但有道理 ===
+      { name: "旺财", avatar: "", style: "吃货狗", critique: "这pose僵得跟我被带去宠物店拍照一样！放松，歪头，看镜头——三连，你照做我看看。", lang: "zh" },
+      { name: "米奇妙妙屋", avatar: "", style: "IQ50侦探", critique: "嘿嘿...这张照片构图的问题在于——主体不够突出。就像我永远找不到我的 cheese 一样！", lang: "zh" },
+      { name: "蜡笔小新", avatar: "", style: "5岁灵魂", critique: "妈妈说动起来拍才自然！你站那么直干嘛～跑来跑去的时候让爸爸妈妈连拍！", lang: "zh" },
+      { name: "海绵宝宝", avatar: "", style: "乐观天才", critique: "我准备好了！我准备好了！——你拍照的时机不对，要在最好玩的那一秒按下去！", lang: "zh" },
+
+      // === 科学家/学者 - 理性分析派 ===
+      { name: "爱因斯坦", avatar: "", style: "理论物理学家", critique: "E=mc²，但好照片 = 构图 + 光线 + 时机。你的公式缺了两项。", lang: "zh" },
+      { name: "达尔文", avatar: "", style: "生物学家", critique: "适者生存，强者曝光。你这张不是过度曝光就是死黑，自然光用不好就找个窗边。", lang: "zh" },
+      { name: "霍金", avatar: "", style: "天体物理学家", critique: "The universe is dark. Your photo is also dark. Coincidence? I think not.", translation: "宇宙是黑的。你的照片也黑。这是巧合吗？我不这么认为。", lang: "en" },
+
+      // === 艺术家/作家 - 感觉派 ===
+      { name: "梵高", avatar: "", style: "后印象派", critique: "星空有星月，夜景要有灯光层次！你这黑成一坨，像我割耳朵那天的心情。去找个光源。", lang: "zh" },
+      { name: "鲁迅", avatar: "", style: "文学巨匠", critique: "我向来不轻易褒贬。但这张——进步空间的确很大。多拍，多看，少滤镜。", lang: "zh" },
+      { name: "宫崎骏", avatar: "", style: "动画大师", critique: "この写真には生命がない。風の音、葉の揺れ、光の粒——それを感じられる瞬間を待て。", translation: "这张照片没有生命。风的声响、树叶的摇曳、光的颗粒——等待能感受到那些的瞬间。", lang: "ja" },
+
+      // === 商业大佬 - 结果派 ===
+      { name: "马斯克", avatar: "", style: "SpaceX CEO", critique: "Failed launch. If this were a rocket, we'd say 'needs improvement.' Actually, just delete and retake.", translation: "发射失败。如果这是火箭，我们会说'需要改进'。其实，删了重拍吧。", lang: "en" },
+      { name: "马云", avatar: "", style: "商业导师", critique: "格局小了。拍照也是一样，要有人无我有、人有我精的意识。你的照片太普通了。", lang: "zh" },
+      { name: "何炅", avatar: "", style: "主持人", critique: "拍照要有观众视角。你这张，焦点乱飘，表情僵硬——先让被拍的人放松下来。", lang: "zh" },
+
+      // === 网红博主 - 内容派 ===
+      { name: "李子柒", avatar: "", style: "田园生活家", critique: "你这照片没有'味道'。好的照片能让人闻到香气、听到虫鸣。先想想你要传达什么情绪。", lang: "zh" },
+      { name: "papi酱", avatar: "", style: "短视频博主", critique: "信息密度太低了！3秒内讲不完一个故事的画面，不是好画面。", lang: "zh" },
+
+      // === 美食专家 ===
+      { name: "孤独的美食家", avatar: "", style: "五郎大叔", critique: "热气！热气没了！食物摄影第一法则：趁热拍。凉了之后光泽感全失。", lang: "zh" },
+      { name: "小当家", avatar: "", style: "中华小当家", critique: "这道菜发光的部分呢？！油光、水汽、高光——美食照没有这三样，就是一碗剩饭。", lang: "zh" },
+
+      // === 宠物专家 ===
+      { name: "忠犬八公", avatar: "", style: "狗界标杆", critique: "眼睛！焦点要对在眼睛上！狗子眼神光没有，整张照片就失去了灵魂。", lang: "zh" },
+      { name: "橘猫", avatar: "", style: "资深猫奴", critique: "等猫看镜头的那一秒再拍。其他时候按的都是废片。相信我，我每天都这样被拍。", lang: "zh" },
+    ];
+
+    // Detect themes
     const isPortrait = text.includes("人像") || text.includes("肖像") || text.includes("自拍");
-    const isStreet = text.includes("街头") || text.includes("街拍") || text.includes("城市");
-    const isIndoor = text.includes("室内") || text.includes("家居") || text.includes("咖啡");
-    const isNight = text.includes("夜景") || text.includes("夜晚") || text.includes("灯光");
-    const isFood = text.includes("美食") || text.includes("食物") || text.includes("餐厅");
+    const isStreet = text.includes("街头") || text.includes("街拍");
+    const isNight = text.includes("夜景") || text.includes("夜晚");
+    const isFood = text.includes("美食") || text.includes("食物");
     const isPet = text.includes("宠物") || text.includes("猫") || text.includes("狗");
-    const isKid = text.includes("儿童") || text.includes("小孩") || text.includes("宝宝");
-    const isNature = text.includes("森林") || text.includes("花草") || text.includes("植物") || text.includes("海边") || text.includes("沙滩");
-    const isTravel = text.includes("旅行") || text.includes("旅游") || text.includes("风景");
-    const isCute = text.includes("可爱") || text.includes("萌") || text.includes("小清新");
+    const isKid = text.includes("儿童") || text.includes("小孩");
+    const isNature = text.includes("森林") || text.includes("海边") || text.includes("沙滩");
+    const isTravel = text.includes("旅行") || text.includes("风景");
+    const isIndoor = text.includes("室内") || text.includes("家居");
 
-    // Theme-specific persona pools
-    const themePersonas: { theme: string; personas: Persona[] }[] = [
-      {
-        theme: "户外",
-        personas: [
-          { name: "丁真", avatar: "", style: "理塘旅游大使", critique: "这个背景太普通了嘛，我们理塘的蓝天白云不比这好看？下次来拍，我给你当导游！", lang: "zh" },
-          { name: "贝爷", avatar: "", style: "野外生存专家", critique: "户外摄影最重要的是和自然互动，你这背景跟游客打卡照没区别。找到那个让人'哇'的瞬间！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "人像",
-        personas: [
-          { name: "旺财", avatar: "", style: "专业舔狗", critique: "汪！这个人看起来心情不错，但拍照表情太僵了！主人说笑容要发自内心，你这个假笑太明显了！", lang: "zh" },
-          { name: "石原里美", avatar: "", style: "日系女神", critique: "自拍角度很重要呢～这个光线把脸拍大了哦。下次试试从上面斜着拍，会更显脸小呢！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "街头",
-        personas: [
-          { name: "森山大道", avatar: "", style: "街头摄影大师", critique: "ストリート写真は決意だ。この作品はうーん、もう少し空気感があればな。", translation: "街头摄影需要决心。这张嘛...如果再多点氛围感就好了。", lang: "ja" },
-          { name: "五条悟", avatar: "", style: "最强法师", critique: "この写真、少しだけ物足りないな。次はもっと大胆に構図を決めてくれ！", translation: "这张照片有点不够味啊。下次构图再大胆一点！", lang: "ja" },
-        ]
-      },
-      {
-        theme: "室内",
-        personas: [
-          { name: "泡澡小黄鸭", avatar: "", style: "浴室哲学家", critique: "嘎嘎！室内拍照最重要的是光线，你这角度让整个人都暗沉了。要向窗户那边靠，让自然光照亮你！", lang: "zh" },
-          { name: "二足鸦", avatar: "", style: "室内风水师", critique: "室内摄影讲究的是空间感，你这构图让房间显得逼仄。试试把手机抬高一点，俯拍会显得空间更大！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "夜景",
-        personas: [
-          { name: "赛博朋克2077", avatar: "", style: "夜之城居民", critique: "Night city is dark, but your photo is darker. 夜景需要灯光，你这拍出来黑漆漆一片！找个光源拍会好很多！", lang: "en" },
-          { name: "梵高", avatar: "", style: "后印象派画家", critique: "星空的夜晚应该有星星般的点光源。你这张夜景...夜空黑得像我的后期一样。加点灯光层次吧！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "宠物",
-        personas: [
-          { name: "韩寒", avatar: "", style: "作家/赛车手", critique: "拍宠物和写作一样，要有耐心等那个对的表情。你这张狗都拍糊了——对焦点应该在眼睛上啊！", lang: "zh" },
-          { name: "喵星人", avatar: "", style: "资深猫奴", critique: "拍猫最重要的是时机！你这张猫耳朵都耷拉下来了，明显是不想拍的状态。等它看你的时候再按快门！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "儿童",
-        personas: [
-          { name: "蜡笔小新", avatar: "", style: "5岁灵魂画家", critique: "妈妈说小孩子拍照要自然！你这个pose太大人了啦～小孩子就要动起来拍才能抓到最真实的表情！", lang: "zh" },
-          { name: "龙猫", avatar: "", style: "森林精灵", critique: "小孩子拍照最重要的是安全感和开心。你这表情太紧张了啦！下次买点零食哄一哄再拍～", lang: "zh" },
-        ]
-      },
-      {
-        theme: "可爱",
-        personas: [
-          { name: "可达鸭", avatar: "", style: "呆萌哲学家", critique: "嘎嘎嘎～这个pose太刻意了啦！可爱就是要自然不做作，你看我就往那一站就萌翻了！", lang: "zh" },
-          { name: "琳娜贝尔", avatar: "", style: "迪士尼公主", critique: "拍照就是要开心！你这个笑得太用力了啦～自然甜美的笑容才是最美的呢！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "美食",
-        personas: [
-          { name: "孤独的美食家", avatar: "", style: "五郎大叔", critique: "这道菜拍得...让我食欲都减少了三分。美食摄影要突出热气和人味儿，你这冷冰冰的没感觉。", lang: "zh" },
-          { name: "悟里", avatar: "", style: "米其林大厨", critique: "摆盘是美食的灵魂，你这张把菜拍得像外卖小哥送的盒饭。从45度角俯拍，光线打在这道菜上！", lang: "zh" },
-        ]
-      },
-      {
-        theme: "旅行",
-        personas: [
-          { name: "徐霞客", avatar: "", style: "明代旅行家", critique: "旅行摄影讲究的是'我在场'。你这是打卡照，不是旅行照！下次试着让人融入风景，而不是站在风景前面。", lang: "zh" },
-          { name: "安室透", avatar: "", style: "旅游特工", critique: "旅行照片的背景选择很重要！你这个人融不进风景啦，要找那种能让人一眼认出'啊这是某地'的机位！", lang: "zh" },
-        ]
-      },
-    ];
-
-    // Default personas for any theme
-    const defaultPersonas: Persona[] = [
-      { name: "张三丰", avatar: "", style: "扫地老僧", critique: "你这照片嘛...构图太满，不够透气。武林高手讲究留白，摄影也是同理。回去再练练吧。", lang: "zh" },
-      { name: "小当家", avatar: "", style: "中华一番", critique: "摄影和做菜一样，讲究色香味俱全！你这张照片'卖相'不行，让人看了没胃口。", lang: "zh" },
-      { name: "鲁迅", avatar: "", style: "文学巨匠", critique: "我素来不轻易评价图片，但这张嘛...确实是需要再多练习的。进步的秘诀是多看多拍。", lang: "zh" },
-    ];
-
-    // Pick personas based on detected themes
-    if (isOutdoor || isNature || isTravel) {
-      personas.push(...themePersonas.find(tp => tp.theme === "户外")!.personas);
-    }
-    if (isPortrait || isCute) {
-      personas.push(...themePersonas.find(tp => tp.theme === "人像")!.personas);
-    }
-    if (isStreet) {
-      personas.push(...themePersonas.find(tp => tp.theme === "街头")!.personas);
-    }
-    if (isIndoor) {
-      personas.push(...themePersonas.find(tp => tp.theme === "室内")!.personas);
-    }
-    if (isNight) {
-      personas.push(...themePersonas.find(tp => tp.theme === "夜景")!.personas);
-    }
-    if (isPet) {
-      personas.push(...themePersonas.find(tp => tp.theme === "宠物")!.personas);
-    }
-    if (isKid) {
-      personas.push(...themePersonas.find(tp => tp.theme === "儿童")!.personas);
-    }
-    if (isCute) {
-      personas.push(...themePersonas.find(tp => tp.theme === "可爱")!.personas);
-    }
-    if (isFood) {
-      personas.push(...themePersonas.find(tp => tp.theme === "美食")!.personas);
+    // Theme-specific boost
+    let pool = [...allPersonas];
+    if (isPortrait || isStreet) {
+      // Prioritize portrait/street photographers
+      pool = pool.sort((a, b) => {
+        const portraitBoost = (name: string) =>
+          ["陈漫", "Annie Leibovitz", "森山大道", "张艺谋", "荒木经惟", "旺财", "蜡笔小新", "五条悟"].includes(name) ? -1 : 1;
+        return portraitBoost(a.name) - portraitBoost(b.name);
+      });
+    } else if (isNature || isTravel) {
+      pool = pool.sort((a, b) => {
+        const natureBoost = (name: string) =>
+          ["丁真", "李子柒", "徐霞客", "宫崎骏", "梵高"].includes(name) ? -1 : 1;
+        return natureBoost(a.name) - natureBoost(b.name);
+      });
+    } else if (isFood) {
+      pool = pool.sort((a, b) => {
+        const foodBoost = (name: string) =>
+          ["孤独的美食家", "悟里", "小当家"].includes(name) ? -1 : 1;
+        return foodBoost(a.name) - foodBoost(b.name);
+      });
+    } else if (isPet) {
+      pool = pool.sort((a, b) => {
+        const petBoost = (name: string) =>
+          ["旺财", "喵星人", "韩寒"].includes(name) ? -1 : 1;
+        return petBoost(a.name) - petBoost(b.name);
+      });
     }
 
-    // Always add some default personas
-    personas.push(...defaultPersonas.slice(0, 3));
+    // Pick 5 personas ensuring diversity:
+    // - 2 photography professionals (Chinese)
+    // - 1 funny character (anime/meme style)
+    // - 1 scientist or artist
+    // - 1 business/influencer personality
+    // Non-Chinese must have Chinese translations
+    const shuffled = pool.sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, 10);
 
-    // Shuffle and pick 4-5 personas
-    const shuffled = personas.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 5);
+    const result: Persona[] = [];
+    const usedNames = new Set<string>();
+
+    // Helper categories
+    const professionals = ["陈漫", "张艺谋", "森山大道", "荒木经惟"];
+    const funnyChars = ["旺财", "米奇妙妙屋", "蜡笔小新", "海绵宝宝"];
+    const scientists = ["爱因斯坦", "达尔文", "霍金"];
+    const artists = ["梵高", "鲁迅", "宫崎骏"];
+    const business = ["马斯克", "马云", "何炅", "李子柒", "papi酱"];
+    const foodPets = ["孤独的美食家", "小当家", "忠犬八公", "橘猫"];
+
+    const pickFrom = (names: string[]) => {
+      for (const name of names) {
+        if (result.length >= 5) break;
+        const p = picked.find(p => p.name === name);
+        if (p && !usedNames.has(p.name)) {
+          result.push(p);
+          usedNames.add(p.name);
+        }
+      }
+    };
+
+    // Order: pros -> funny -> scientists/artists -> business
+    pickFrom(professionals);
+    pickFrom(funnyChars);
+    pickFrom([...scientists, ...artists]);
+    pickFrom([...business, ...foodPets]);
+
+    // If not enough, fill from remaining
+    if (result.length < 5) {
+      for (const p of picked) {
+        if (result.length >= 5) break;
+        if (!usedNames.has(p.name)) {
+          result.push(p);
+          usedNames.add(p.name);
+        }
+      }
+    }
+
+    return result.slice(0, 5);
   };
 
   // Update personas when critique is ready
@@ -459,6 +461,40 @@ const Critique = () => {
       return;
     }
 
+    // Extract key suggestions from critique for a focused image prompt
+    const extractImagePrompt = (critique: string): string => {
+      const lines = critique.split("\n");
+      const keyTerms: string[] = [];
+
+      // Keywords that indicate actionable suggestions
+      const suggestionKeywords = ["光", "角度", "构图", "背景", "姿势", "表情", "服饰", "场地", "时间", "时段", "机位", "构图"];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // Skip headers and tables
+        if (trimmed.startsWith("#") || trimmed.startsWith("|") || trimmed.startsWith("---")) continue;
+
+        for (const keyword of suggestionKeywords) {
+          if (trimmed.includes(keyword) && trimmed.length < 100) {
+            // Extract the suggestion part
+            const match = trimmed.match(new RegExp(`[^。！？,]*${keyword}[^。！？,]*`));
+            if (match) {
+              const suggestion = match[0].replace(/\*\*/g, "").replace(/[*#]/g, "").trim();
+              if (suggestion.length > 3 && suggestion.length < 80) {
+                keyTerms.push(suggestion);
+              }
+            }
+          }
+        }
+      }
+
+      // Dedupe and limit
+      const uniqueTerms = [...new Set(keyTerms)].slice(0, 5);
+      return uniqueTerms.join("，");
+    };
+
+    const imagePrompt = extractImagePrompt(critiqueText);
+
     setIsGeneratingImage(true);
     try {
       const resp = await fetch(GENERATE_IMAGE_URL, {
@@ -468,7 +504,7 @@ const Critique = () => {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          prompt: critiqueText,
+          prompt: imagePrompt || (lang === "zh" ? "更好的拍摄效果，改进构图和光线" : "Better shot with improved composition and lighting"),
           imageData: refImage,
           language: lang === "zh" ? "zh" : "en",
         }),
@@ -488,8 +524,8 @@ const Critique = () => {
         const imgMsg: Message = {
           role: "assistant",
           content: t(
-            "## 🎨 AI优化参考图\n\n根据以上点评生成的优化参考，展示理想拍摄效果：\n\n> 💡 *AI参考图，实际拍摄请灵活调整*",
-            "## 🎨 AI Optimized Reference\n\nOptimized reference based on the critique above:\n\n> 💡 *AI reference — adjust based on actual conditions*"
+            "## 🎨 AI优化参考图\n\n基于以下建议生成的优化参考：\n\n> 💡 *AI参考图，实际拍摄请灵活调整*",
+            "## 🎨 AI Optimized Reference\n\nBased on key suggestions:\n\n> 💡 *AI reference — adjust based on actual conditions*"
           ),
           generatedImage: data.imageUrl,
         };
@@ -652,25 +688,10 @@ const Critique = () => {
         .replace(/&#39;/g, "'");
     };
 
-    const getAppLink = (url: string): { href: string; target: string } => {
-      // WeChat links
-      if (url.includes("weixin") || url.includes("wechat")) {
-        return { href: url, target: "_blank" };
-      }
-      // Xiaohongshu - try to open in app first, fallback to web
-      if (url.includes("xiaohongshu") || url.includes("xhslink")) {
-        // Try to use xhslink:// or open in browser with priority to web
-        return { href: url, target: "_blank" };
-      }
-      // Douyin - try to open in app
-      if (url.includes("douyin") || url.includes("aweme")) {
-        return { href: url, target: "_blank" };
-      }
-      // Bilibili
-      if (url.includes("bilibili")) {
-        return { href: url, target: "_blank" };
-      }
-      return { href: url, target: "_blank" };
+    const getSearchLink = (linkText: string): string => {
+      // Convert link text to a Google search link
+      const searchQuery = encodeURIComponent(linkText + " 摄影");
+      return `https://www.google.com/search?q=${searchQuery}`;
     };
 
     const renderInline = (text: string) => {
@@ -681,9 +702,9 @@ const Critique = () => {
       return linkParts.map((seg, si) => {
         const linkMatch = seg.match(/^\[(.*?)\]\((.*?)\)$/);
         if (linkMatch) {
-          const appLink = getAppLink(linkMatch[2]);
+          const searchLink = getSearchLink(linkMatch[1]);
           return (
-            <a key={si} href={appLink.href} target={appLink.target} rel="noopener noreferrer"
+            <a key={si} href={searchLink} target="_blank" rel="noopener noreferrer"
               className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">
               {linkMatch[1]}
             </a>
@@ -714,44 +735,144 @@ const Critique = () => {
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, "\"")
       .replace(/&#39;/g, "'")
-      .replace(/\*\*(.*?)\*\*/g, "___MARK___$1___ENDMARK___")
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "___LINK___$1|$2___ENDLINK___");
+      .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markers
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "|||LINK|||$1|||URL|||$2|||ENDLINK|||");
 
-    // Split into lines and render each
-    const lines = cleaned.split("\n").filter(l => l.trim());
-    return lines.map((line, i) => {
-      // Handle links
-      const parts = line.split(/(___LINK___.*?___ENDLINK___)/g);
-      return (
-        <p key={i} className="text-sm text-foreground leading-relaxed mb-2">
-          {parts.map((part, j) => {
-            if (part.startsWith("___LINK___")) {
-              const match = part.match(/___LINK___(.+?)\|(.+?)___ENDLINK___/);
-              if (match) {
-                const linkText = match[1];
-                const linkUrl = match[2];
-                let href = linkUrl;
-                if (linkUrl.includes("xiaohongshu") || linkUrl.includes("xhslink")) href = linkUrl;
-                if (linkUrl.includes("douyin")) href = linkUrl;
+    // Key phrases to highlight
+    const keyPhrases = [
+      "建议", "重点", "关键", "必须", "一定", "不要", "避免",
+      "提高", "改善", "加强", "注意", "调整", "改变",
+      "构图", "光线", "曝光", "对焦", "白平衡", "色彩",
+      "姿势", "表情", "背景", "构图", "光圈", "快门",
+      "ISO", "焦段", "角度", "机位", "时段",
+    ];
+
+    // Helper to highlight key phrases in a line
+    const highlightLine = (line: string): React.ReactNode => {
+      // Check if line contains links
+      if (line.includes("|||LINK|||")) {
+        const parts = line.split(/(|||LINK|||.*?|||ENDLINK|||)/g);
+        return parts.map((part, j) => {
+          if (part.startsWith("|||LINK|||")) {
+            const match = part.match(/\|\|\|LINK\|\|\|(.+?)\|\|\|URL\|\|\|(.+?)\|\|\|ENDLINK\|\|\|/);
+            if (match) {
+              return (
+                <a key={j} href={match[2]} target="_blank" rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80">
+                  {match[1]}
+                </a>
+              );
+            }
+          }
+          // Check if this part has key phrases
+          let result: React.ReactNode = part;
+          for (const phrase of keyPhrases) {
+            if (part.includes(phrase) && part.length < 200) {
+              // Highlight key phrases
+              const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
+              result = part.split(regex).map((seg, k) => {
+                if (k % 2 === 1) {
+                  return <strong key={`${j}-${k}`} className="text-amber-500 font-semibold">{seg}</strong>;
+                }
+                return seg;
+              });
+              break;
+            }
+          }
+          return result;
+        });
+      }
+
+      // No links - check for key phrases
+      let result: React.ReactNode = line;
+      for (const phrase of keyPhrases) {
+        if (line.includes(phrase) && line.length < 200) {
+          const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
+          result = line.split(regex).map((seg, k) => {
+            if (k % 2 === 1) {
+              return <strong key={k} className="text-amber-500 font-semibold">{seg}</strong>;
+            }
+            return seg;
+          });
+          break;
+        }
+      }
+      return result;
+    };
+
+    // Split by lines and handle tables specially
+    const lines = cleaned.split("\n");
+    const elements: React.ReactNode[] = [];
+    let tableRows: string[][] = [];
+    let inTable = false;
+    let colCount = 0;
+
+    const flushTable = () => {
+      if (tableRows.length > 0) {
+        const isHeaderRow = (row: string[]) => row.some(c => c.includes("维度") || c.includes("⭐") || c.includes("评分"));
+        elements.push(
+          <div key={`table-${elements.length}`} className="border border-border/30 rounded-lg overflow-hidden mb-3">
+            {tableRows.map((row, ri) => {
+              if (isHeaderRow(row) && ri === 0) {
                 return (
-                  <a key={j} href={href} target="_blank" rel="noopener noreferrer"
-                    className="text-primary underline underline-offset-2 hover:text-primary/80">
-                    {linkText}
-                  </a>
+                  <div key={ri} className="grid gap-1 text-xs py-2 px-3 bg-secondary/50 font-semibold text-muted-foreground border-b border-border/30"
+                    style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+                    {row.map((cell, ci) => (
+                      <span key={ci} className={`text-center ${ci === 1 && cell.includes("⭐") ? "text-amber-400" : ""}`}>{cell}</span>
+                    ))}
+                  </div>
                 );
               }
-            }
-            // Handle bold markers
-            const boldParts = part.split(/___MARK___(.*?)___ENDMARK___/g);
-            return boldParts.map((bp, k) =>
-              k % 2 === 1
-                ? <strong key={`${i}-${j}-${k}`} className="text-primary font-semibold">{bp}</strong>
-                : <span key={`${i}-${j}-${k}`}>{bp}</span>
-            );
-          })}
-        </p>
-      );
-    });
+              return (
+                <div key={ri} className="grid gap-1 text-xs py-2 px-3 hover:bg-secondary/30"
+                  style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+                  {row.map((cell, ci) => (
+                    <span key={ci} className={`${ci <= 1 ? "text-center" : "text-left"}`}>{highlightLine(cell)}</span>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        );
+        tableRows = [];
+        inTable = false;
+        colCount = 0;
+      }
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Detect table row
+      if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+        const cells = trimmed.split("|").filter(c => c.trim() !== "").map(c => c.trim());
+        // Skip separator row
+        if (cells.every(c => /^[\s:-]+$/.test(c))) continue;
+        inTable = true;
+        colCount = Math.max(colCount, cells.length);
+        tableRows.push(cells);
+      } else {
+        if (inTable) flushTable();
+        if (!trimmed) continue;
+        // Check if this line is a sentence-ending paragraph
+        if (trimmed.includes("。") || trimmed.includes("！") || trimmed.includes("？")) {
+          elements.push(
+            <p key={elements.length} className="text-sm text-foreground leading-relaxed mb-2">
+              {highlightLine(trimmed)}
+            </p>
+          );
+        } else {
+          // Continue building current paragraph
+          elements.push(
+            <p key={elements.length} className="text-sm text-foreground leading-relaxed mb-1">
+              {highlightLine(trimmed)}
+            </p>
+          );
+        }
+      }
+    }
+    if (inTable) flushTable();
+
+    return elements;
   };
 
   const renderMessageContent = (msg: Message) => (
@@ -796,105 +917,50 @@ const Critique = () => {
     </>
   );
 
-  // Extract one-liner critique - brutal, direct, and theme-specific
+  // Extract one-liner critique from the actual AI critique content
   const getOneLinerCritique = () => {
     const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
     if (!assistantMsg) return "";
-    const content = assistantMsg.content.toLowerCase();
 
-    // Detect photo themes for specific roasts
-    const themes: { keyword: string; roasts: string[]; good: string[] }[] = [
-      {
-        keyword: "人像",
-        roasts: ["这张人像，表情僵得像游客照", "拍人像最重要的表情，你这个跟证件照似的", "人像摄影讲究神态，你这像个木头人"],
-        good: ["人像能拍成这样，算你有点东西", "这表情抓得不错，有点灵魂"]
-      },
-      {
-        keyword: "自拍",
-        roasts: ["自拍最重要的是角度，你这角度把自己拍成大饼脸了", "美颜开太大了吧，原相机拍出来估计吓死人", "自拍要的是自然，你这假笑太明显了"],
-        good: ["这个自拍角度绝了，很显脸小", "美得刚刚好，不假"]
-      },
-      {
-        keyword: "风景",
-        roasts: ["风景照拍成到此一游照了", "这构图，风光大片秒变游客打卡", "风景美但你拍得丑，浪费了"],
-        good: ["这风景照有内味了", "大片感出来了"]
-      },
-      {
-        keyword: "美食",
-        roasts: ["美食被你拍成剩菜了", "这摆盘这光线，食欲瞬间没了", "拍美食不讲究光线，你这跟拍外卖似的"],
-        good: ["这美食拍得让人流口水", "有点东西，食欲被勾起来了"]
-      },
-      {
-        keyword: "夜景",
-        roasts: ["夜景拍成夜魇了，黑得瘆人", "灯光呢？全是黑乎乎一片", "夜景没灯光就是黑一片，你这很真实地反映了问题"],
-        good: ["夜景氛围感拉满了", "有点霓虹都市那味了"]
-      },
-      {
-        keyword: "宠物",
-        roasts: ["狗都拍糊了，对焦点应该在眼睛上", "猫都不看你，拍了个寂寞", "宠物摄影要抓拍，你这全是摆拍"],
-        good: ["抓到了！狗狗最可爱的那一瞬", "猫咪灵魂出窍被抓到了"]
-      },
-      {
-        keyword: "儿童",
-        roasts: ["小孩子表情管理失败", "抓拍变摆拍，摆拍变僵硬", "拍小孩最重要的是自然，你这像拍证件照"],
-        good: ["天真的笑容被记录下来了", "抓到了自然的表情，很真实"]
-      },
-      {
-        keyword: "街头",
-        roasts: ["街头摄影要有故事，你这像扫街敷衍", "决定性瞬间没抓到，全是废片", "街拍要有内味，你这个太普通了"],
-        good: ["有人文气息了，不错", "扫街扫出品味来了"]
-      },
-      {
-        keyword: "海边",
-        roasts: ["海边的浪漫被你拍成阴天了", "沙滩拍成沙坑了，蓝天呢？", "海风、沙滩、夕阳，你这拍成了澡堂"],
-        good: ["有海岛度假的感觉了", "海边写真的味道出来了"]
-      },
-      {
-        keyword: "森林",
-        roasts: ["森林被你拍得像路边绿化带", "小清新变成了阴间滤镜", "绿植拍得跟背景板似的，没层次"],
-        good: ["森林系小姐姐的感觉有了", "氧气感十足"]
-      },
-      {
-        keyword: "校园",
-        roasts: ["校园小清新变成了乡土风", "校服照拍成了淘宝风", "青春感全无，像毕业证件照"],
-        good: ["青春校园感拿捏了", "有那年的感觉了"]
-      },
-    ];
+    // Try to find a sharp/funny line from the actual critique content
+    // Look for keywords that indicate a punchy summary line
+    const lines = assistantMsg.content.split("\n");
 
-    // Find matching theme
-    for (const theme of themes) {
-      if (content.includes(theme.keyword)) {
-        const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
-        const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+    // Find lines that seem like impactful summary statements
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip headers, tables, empty lines
+      if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
 
-        if (score >= 80) {
-          return theme.good[Math.floor(Math.random() * theme.good.length)];
-        } else if (score >= 50) {
-          return theme.roasts[Math.floor(Math.random() * theme.roasts.length)].replace("这", "这").replace("你", "你");
-        } else {
-          return theme.roasts[Math.floor(Math.random() * theme.roasts.length)];
-        }
+      // Look for lines with 暴击/致命/问题/建议 keywords that are short
+      if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 60) {
+        // Clean markdown
+        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+        if (cleaned.length > 5) return cleaned;
       }
     }
 
-    // Fallback to score-based roasts
-    const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
-    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
-
-    if (score > 0) {
-      if (score < 40) return "烂片一张，没救了。";
-      if (score < 55) return "拍得一般，凑合看吧。";
-      if (score < 70) return "有点东西，但问题不少。";
-      if (score < 85) return "不错，但还能更好。";
-      return "可以啊，这水平能看了！";
+    // Extract the first meaningful sentence from 快速诊断 or similar sections
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if ((trimmed.includes("诊断") || trimmed.includes("问题") || trimmed.includes("总结")) && trimmed.length < 80) {
+        const cleaned = trimmed.replace(/\*\*/g, "").replace(/^.*?[：:]\s*/, "");
+        if (cleaned.length > 10) return cleaned;
+      }
     }
 
-    const lines = content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("---"));
-    const firstLine = lines[0] || "";
-    if (firstLine.includes("不错") || firstLine.includes("很好")) return firstLine.slice(0, 30);
-    if (firstLine.includes("一般") || firstLine.includes("普通")) return "就...一般吧，没啥亮点。";
-    if (firstLine.includes("问题") || firstLine.includes("需要")) return "问题不少，得改。";
-    return firstLine.slice(0, 25) || "这照片...自己看吧。";
+    // Fallback: extract first short paragraph
+    let paragraph = "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("#") || trimmed.startsWith("|") || trimmed.startsWith("---") || !trimmed) continue;
+      paragraph += trimmed + " ";
+      if (trimmed.includes("。") && paragraph.length > 10) {
+        return paragraph.replace(/\*\*/g, "").slice(0, 50);
+      }
+    }
+
+    return "";
   };
 
   // Parse critique into sections by ## headers
@@ -915,9 +981,10 @@ const Critique = () => {
           sections.push(currentSection);
         }
         currentSection = { title: trimmed.replace("### ", ""), content: "" };
-      } else if (trimmed && !trimmed.startsWith("---") && !trimmed.match(/^\|.*\|$/)) {
+      } else if (trimmed && !trimmed.startsWith("---")) {
+        // Include table rows in content
         if (currentSection.title || currentSection.content) {
-          currentSection.content += trimmed + " ";
+          currentSection.content += trimmed + "\n";
         }
       }
     }
@@ -1267,21 +1334,15 @@ const Critique = () => {
               </CardContent>
             </Card>
 
-            {/* 2. Score */}
-            {score !== null && (
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-3xl font-bold text-gradient-gold">{score}</span>
-                <span className="text-muted-foreground text-sm">/ 100</span>
-              </div>
+            {/* 2. One-liner Critique - extracted from detailed critique */}
+            {getOneLinerCritique() && (
+              <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
+                <CardContent className="pt-4 pb-4">
+                  <h3 className="text-sm font-bold text-primary mb-2">💥 {t("一句话暴击", "One-liner Roast")}</h3>
+                  <p className="text-sm text-foreground leading-relaxed">{getOneLinerCritique()}</p>
+                </CardContent>
+              </Card>
             )}
-
-            {/* 3. One-liner Critique */}
-            <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
-              <CardContent className="pt-4 pb-4">
-                <h3 className="text-sm font-bold text-primary mb-2">💥 {t("一句话暴击", "One-liner Roast")}</h3>
-                <p className="text-sm text-foreground leading-relaxed">{getOneLinerCritique()}</p>
-              </CardContent>
-            </Card>
 
             {/* 4. Persona Critiques */}
             <div className="space-y-3">
@@ -1320,16 +1381,56 @@ const Critique = () => {
 
             {showDetailed && (
               <div className="space-y-4">
-                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "").map((section, i) => (
-                  <Card key={i}>
-                    <CardContent className="pt-4">
-                      <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
-                      <div className="space-y-1">
-                        {renderDetailedContent(section.content.trim())}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "").map((section, i) => {
+                  // Check if this is 风格识别 section
+                  const isStyleSection = section.title.includes("风格") || section.title.includes("风格识别");
+                  // Check if this is 快速诊断 section
+                  const isQuickDiagSection = section.title.includes("快速诊断") || section.title.includes("诊断");
+
+                  return (
+                    <Card key={i}>
+                      <CardContent className="pt-4">
+                        {isStyleSection ? (
+                          <>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-primary">{section.title}</h4>
+                              {messages.find(m => m.detectedStyleId) && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="text-primary h-auto p-0"
+                                  onClick={() => {
+                                    const styleId = messages.find(m => m.detectedStyleId)?.detectedStyleId;
+                                    if (styleId) navigate(`/styles/${styleId}`, { state: { fromCritique: true, historyId } });
+                                  }}
+                                >
+                                  查看风格攻略 →
+                                </Button>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              {renderDetailedContent(section.content.trim())}
+                            </div>
+                          </>
+                        ) : isQuickDiagSection ? (
+                          <>
+                            <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
+                            <div className="space-y-1">
+                              {renderDetailedContent(section.content.trim())}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
+                            <div className="space-y-1">
+                              {renderDetailedContent(section.content.trim())}
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

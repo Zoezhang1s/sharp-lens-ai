@@ -10,9 +10,10 @@ const History = () => {
   const { records, deleteRecord } = useHistory();
 
   const handleClickRecord = (record: any) => {
-    // If score is 0, it means critique is in progress or failed
+    // If no assistant response yet, critique is in progress
     // Store the historyId in sessionStorage and navigate to critique page
-    if (record.score === 0) {
+    const hasAssistantResponse = record.messages?.some((m: any) => m.role === "assistant");
+    if (!hasAssistantResponse) {
       sessionStorage.setItem("critique-in-progress", JSON.stringify({
         imageData: record.imageData,
         messages: record.messages,
@@ -50,8 +51,9 @@ const History = () => {
         ) : (
           <div className="space-y-3">
             {records.map((record) => {
-              const isInProgress = record.score === 0;
-              const hasNoResponse = !record.messages.some((m: any) => m.role === "assistant");
+              const hasAssistantResponse = record.messages?.some((m: any) => m.role === "assistant");
+              const isInProgress = !hasAssistantResponse;
+              const hasFailed = hasAssistantResponse && record.score === 0;
 
               return (
                 <div
@@ -69,26 +71,27 @@ const History = () => {
                       <p className="text-sm font-medium text-foreground line-clamp-1">{record.title}</p>
                       {isInProgress && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary shrink-0">
-                          {hasNoResponse ? t("进行中", "In Progress") : t("失败", "Failed")}
+                          {t("等待AI点评...", "Waiting for AI...")}
+                        </span>
+                      )}
+                      {hasFailed && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/20 text-destructive shrink-0">
+                          {t("失败，点击重试", "Failed, tap to retry")}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{record.summary}</p>
                     <div className="flex items-center gap-3 mt-2">
                       {isInProgress ? (
-                        <>
-                          {hasNoResponse ? (
-                            <span className="text-xs text-primary flex items-center gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              {t("等待AI点评...", "Waiting for AI...")}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-destructive flex items-center gap-1">
-                              <RefreshCw className="w-3 h-3" />
-                              {t("点击重试", "Click to retry")}
-                            </span>
-                          )}
-                        </>
+                        <span className="text-xs text-primary flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          {t("等待AI点评...", "Waiting for AI...")}
+                        </span>
+                      ) : hasFailed ? (
+                        <span className="text-xs text-destructive flex items-center gap-1">
+                          <RefreshCw className="w-3 h-3" />
+                          {t("点击重试", "Click to retry")}
+                        </span>
                       ) : (
                         <>
                           <span className="text-xs text-primary font-semibold">{record.score}/100</span>
