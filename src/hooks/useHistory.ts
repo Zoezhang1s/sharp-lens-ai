@@ -182,10 +182,6 @@ export function generateTitle(text: string, lang: string): string {
       else if (score >= 45) pool = theme.titles.mid;
       else pool = theme.titles.low;
 
-      const title = pool[Math.floor(Math.random() * pool.length)];
-      if (score > 0) {
-        return `${title}（${score}分）`;
-      }
       return title;
     }
   }
@@ -200,7 +196,7 @@ export function generateTitle(text: string, lang: string): string {
         "建议设为手机壁纸提醒自己进步",
         "拍了个寂寞",
       ];
-      return `${badTitles[Math.floor(Math.random() * badTitles.length)]}（${score}分）`;
+      return badTitles[Math.floor(Math.random() * badTitles.length)];
     }
     if (score < 50) {
       const okTitles = [
@@ -210,7 +206,7 @@ export function generateTitle(text: string, lang: string): string {
         "摄影师的痛你不懂",
         "下次会更好的",
       ];
-      return `${okTitles[Math.floor(Math.random() * okTitles.length)]}（${score}分）`;
+      return okTitles[Math.floor(Math.random() * okTitles.length)];
     }
     if (score < 70) {
       const midTitles = [
@@ -220,7 +216,7 @@ export function generateTitle(text: string, lang: string): string {
         "普通但不算烂",
         "继续加油吧",
       ];
-      return `${midTitles[Math.floor(Math.random() * midTitles.length)]}（${score}分）`;
+      return midTitles[Math.floor(Math.random() * midTitles.length)];
     }
     if (score < 85) {
       const goodTitles = [
@@ -230,7 +226,7 @@ export function generateTitle(text: string, lang: string): string {
         "可以给朋友炫耀了",
         "摄影师小有成就",
       ];
-      return `${goodTitles[Math.floor(Math.random() * goodTitles.length)]}（${score}分）`;
+      return goodTitles[Math.floor(Math.random() * goodTitles.length)];
     }
     // 85-100
     const greatTitles = [
@@ -240,7 +236,7 @@ export function generateTitle(text: string, lang: string): string {
       "摄影师天赋异禀",
       "原地出道吧",
     ];
-    return `${greatTitles[Math.floor(Math.random() * greatTitles.length)]}（${score}分）`;
+    return greatTitles[Math.floor(Math.random() * greatTitles.length)];
   }
 
   // Fallback if no score found
