@@ -30,13 +30,25 @@ const PERSONAS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/personas
 const PERSONAS_CACHE_KEY = "photo-critique-personas-cache";
 
 const detectStyleFromText = (text: string): string | undefined => {
-  for (const style of STYLE_DATA) {
-    if (text.includes(style.nameZh) || text.toLowerCase().includes(style.nameEn.toLowerCase())) {
-      return style.id;
+  // Prefer the "encyclopedia match" line — that's the one guaranteed to be from STYLE_DATA
+  const lines = text.split("\n");
+  const encyclopediaLine = lines.find(
+    (l) =>
+      l.includes("风格百科推荐") ||
+      l.includes("Encyclopedia Match") ||
+      l.includes("百科推荐")
+  );
+  const searchPool = [encyclopediaLine, text].filter(Boolean) as string[];
+
+  for (const pool of searchPool) {
+    for (const style of STYLE_DATA) {
+      if (pool.includes(style.nameZh) || pool.toLowerCase().includes(style.nameEn.toLowerCase())) {
+        return style.id;
+      }
     }
-  }
-  for (const [name, id] of Object.entries(STYLE_NAME_MAP)) {
-    if (text.includes(name)) return id;
+    for (const [name, id] of Object.entries(STYLE_NAME_MAP)) {
+      if (pool.includes(name)) return id;
+    }
   }
   return undefined;
 };
