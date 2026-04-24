@@ -11,7 +11,6 @@ import { useHistory, extractScoreFromText, generateTitle } from "@/hooks/useHist
 
 interface Persona {
   name: string;
-  avatar: string;
   style: string;
   critique: string;
   translation?: string; // Chinese translation for foreign personas
@@ -42,6 +41,31 @@ const detectStyleFromText = (text: string): string | undefined => {
   return undefined;
 };
 
+const buildPersonaBrief = (text: string): string => {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("|") && !line.startsWith("---") && line !== "&nbsp;")
+    .slice(0, 16)
+    .join("\n")
+    .slice(0, 1600);
+};
+
+const getLanguageBadgeClass = (langCode?: string) => {
+  switch ((langCode || "zh").toLowerCase()) {
+    case "en":
+      return "bg-primary/10 text-primary border border-primary/20";
+    case "ja":
+      return "bg-accent text-accent-foreground border border-border/50";
+    case "ko":
+      return "bg-secondary text-secondary-foreground border border-border/50";
+    case "fr":
+      return "bg-muted text-muted-foreground border border-border/50";
+    default:
+      return "bg-primary/10 text-primary border border-primary/20";
+  }
+};
+
 const Critique = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
@@ -62,6 +86,8 @@ const Critique = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addRecord, updateRecord, getRecord } = useHistory();
   const [personas, setPersonas] = useState<Persona[]>([]);
+  const [isLoadingPersonas, setIsLoadingPersonas] = useState(false);
+  const [personasError, setPersonasError] = useState<string | null>(null);
 
   // Persona cache helpers — keyed by historyId so re-entering shows same personas
   const loadCachedPersonas = (hid: string | null): Persona[] | null => {
@@ -101,40 +127,77 @@ const Critique = () => {
   const fetchPersonas = async (critiqueText: string, refImage: string | null) => {
     if (personasFetchingRef.current) return;
     personasFetchingRef.current = true;
+    setIsLoadingPersonas(true);
+    setPersonasError(null);
     try {
-      const resp = await fetch(PERSONAS_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          critique: critiqueText,
-          imageData: refImage,
-          language: lang === "zh" ? "zh" : "en",
-        }),
-      });
+      const { downscaleImage } = await import("@/lib/imageUtils");
+      const brief = buildPersonaBrief(critiqueText);
+      const smallImage = refImage ? await downscaleImage(refImage, 768, 0.72) : null;
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 25000);
+      let resp: Response;
+
+      try {
+        resp = await fetch(PERSONAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: smallImage,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+          signal: controller.signal,
+        });
+      } catch (firstError) {
+        resp = await fetch(PERSONAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: null,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+        });
+        console.warn("Personas retry without image", firstError);
+      } finally {
+        window.clearTimeout(timeout);
+      }
+
       if (!resp.ok) {
-        console.error("Personas fetch failed", resp.status);
+        const errText = await resp.text().catch(() => "");
+        console.error("Personas fetch failed", resp.status, errText);
+        setPersonasError(t("群友锐评掉线了，请稍后再试", "Group critique is temporarily unavailable"));
         return;
       }
+
       const data = await resp.json();
       const list: Persona[] = (data.personas || []).map((p: any) => ({
         name: p.name || "",
-        avatar: "",
         style: p.style || "",
         critique: p.critique || "",
         translation: p.translation || undefined,
         lang: p.lang || "zh",
       }));
+
       if (list.length > 0) {
         setPersonas(list);
         saveCachedPersonas(historyId, list);
+      } else {
+        setPersonasError(t("群友今天嘴替失踪了", "Group critique came back empty"));
       }
     } catch (e) {
       console.error("Personas error", e);
+      setPersonasError(t("群友锐评生成失败，请重试", "Failed to generate group critique"));
     } finally {
       personasFetchingRef.current = false;
+      setIsLoadingPersonas(false);
     }
   };
 
@@ -147,6 +210,7 @@ const Critique = () => {
     const cached = loadCachedPersonas(historyId);
     if (cached && cached.length > 0) {
       setPersonas(cached);
+      setPersonasError(null);
       return;
     }
     // Wait until streaming has likely finished before fetching
@@ -870,34 +934,23 @@ const Critique = () => {
     const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
     if (!assistantMsg) return "";
 
-    // Try to find a sharp/funny line from the actual critique content
-    // Look for keywords that indicate a punchy summary line
     const lines = assistantMsg.content.split("\n");
 
-    // Find lines that seem like impactful summary statements
-    for (const line of lines) {
+    const headerIndex = lines.findIndex((line) => {
       const trimmed = line.trim();
-      // Skip headers, tables, empty lines
-      if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
+      return trimmed.includes("一句话暴击") || trimmed.includes("Opening Roast");
+    });
 
-      // Look for lines with 暴击/致命/问题/建议 keywords that are short
-      if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 60) {
-        // Clean markdown
-        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+    if (headerIndex !== -1) {
+      for (let i = headerIndex + 1; i < lines.length; i += 1) {
+        const trimmed = lines[i].trim();
+        if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("|") || trimmed.startsWith("---")) continue;
+        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "").trim();
         if (cleaned.length > 5) return cleaned;
+        if (trimmed.includes("。") || trimmed.includes("!") || trimmed.includes("！")) break;
       }
     }
 
-    // Extract the first meaningful sentence from 快速诊断 or similar sections
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if ((trimmed.includes("诊断") || trimmed.includes("问题") || trimmed.includes("总结")) && trimmed.length < 80) {
-        const cleaned = trimmed.replace(/\*\*/g, "").replace(/^.*?[：:]\s*/, "");
-        if (cleaned.length > 10) return cleaned;
-      }
-    }
-
-    // Fallback: extract first short paragraph
     let paragraph = "";
     for (const line of lines) {
       const trimmed = line.trim();
@@ -1021,7 +1074,7 @@ const Critique = () => {
       const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
       const score = getScore();
       const oneLiner = getOneLinerCritique();
-      const generatedImageMsg = messages.find(m => m.generatedImage);
+      const generatedImageMsg = [...messages].reverse().find(m => m.generatedImage);
 
       // Create a complete long page container with dark background
       const captureDiv = document.createElement("div");
@@ -1060,7 +1113,13 @@ const Critique = () => {
       const toDataUrl = async (url: string): Promise<string> => {
         if (url.startsWith("data:")) return url;
         try {
-          const resp = await fetch(url, { mode: "cors" });
+          const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(url)}`;
+          const resp = await fetch(proxyUrl, {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          });
+          if (!resp.ok) throw new Error(`Proxy failed: ${resp.status}`);
           const blob = await resp.blob();
           return await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -1083,11 +1142,11 @@ const Critique = () => {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">原图</div>
-              <img src="${imageData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
+              <img src="${imageData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
             <div>
               <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">✨ AI优化参考</div>
-              <img src="${aiImgData}" style="width: 100%; border-radius: 12px;" crossorigin="anonymous" />
+              <img src="${aiImgData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
           </div>
         `;
@@ -1129,7 +1188,8 @@ const Critique = () => {
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
         personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px;";
-        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.6; color: #ccc;">${cleanForDownload(persona.critique)}</div>`;
+        const langColor = persona.lang === "zh" ? "#f59e0b" : persona.lang === "en" ? "#60a5fa" : persona.lang === "ja" ? "#f472b6" : persona.lang === "ko" ? "#34d399" : "#c084fc";
+        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.75; color: ${langColor};">${cleanForDownload(persona.critique)}</div>`;
         if (persona.translation) {
           critiqueHtml += `<div style="font-size: 12px; line-height: 1.6; color: #888; margin-top: 8px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">${persona.translation}</div>`;
         }
@@ -1137,6 +1197,7 @@ const Critique = () => {
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <span style="font-weight: 600; font-size: 14px; color: white;">${persona.name}</span>
             <span style="font-size: 11px; color: #888; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">${persona.style}</span>
+            <span style="font-size: 11px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 10px;">${(persona.lang || "zh").toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
@@ -1345,9 +1406,9 @@ const Critique = () => {
               {personas.length === 0 ? (
                 <Card>
                   <CardContent className="pt-4 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    {isLoadingPersonas ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : null}
                     <span className="text-xs text-muted-foreground">
-                      {t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
+                      {personasError || t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
                     </span>
                   </CardContent>
                 </Card>
@@ -1355,15 +1416,20 @@ const Critique = () => {
                 personas.map((persona, i) => (
                   <Card key={i} className="hover:shadow-md transition-shadow">
                     <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="font-bold text-sm text-foreground">{persona.name}</span>
                         <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
                           {persona.style}
                         </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
+                          {(persona.lang || "zh").toUpperCase()}
+                        </span>
                       </div>
-                      <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
+                      <p className={`text-sm leading-relaxed ${persona.lang === "zh" ? "text-foreground" : "text-primary"}`}>
+                        {persona.critique}
+                      </p>
                       {persona.translation && (
-                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
+                        <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2 bg-secondary/20 rounded-md px-2 py-2">
                           {persona.translation}
                         </p>
                       )}

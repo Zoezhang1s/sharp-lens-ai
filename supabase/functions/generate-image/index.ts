@@ -14,6 +14,37 @@ serve(async (req) => {
   try {
     const { prompt, imageData, language } = await req.json();
 
+    const inferSizeFromImageData = (dataUrl: string) => {
+      const match = dataUrl.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.*)$/);
+      if (!match) return { width: 1080, height: 1920 };
+      const bytes = Uint8Array.from(atob(match[1]), (c) => c.charCodeAt(0));
+
+      if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+        const dv = new DataView(bytes.buffer);
+        return { width: dv.getUint32(16), height: dv.getUint32(20) };
+      }
+
+      if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+        let offset = 2;
+        while (offset < bytes.length) {
+          if (bytes[offset] !== 0xff) {
+            offset += 1;
+            continue;
+          }
+          const marker = bytes[offset + 1];
+          const length = (bytes[offset + 2] << 8) + bytes[offset + 3];
+          if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+            const height = (bytes[offset + 5] << 8) + bytes[offset + 6];
+            const width = (bytes[offset + 7] << 8) + bytes[offset + 8];
+            return { width, height };
+          }
+          offset += 2 + length;
+        }
+      }
+
+      return { width: 1080, height: 1920 };
+    };
+
     if (!prompt || typeof prompt !== "string") {
       return new Response(
         JSON.stringify({ error: "prompt is required" }),
@@ -108,7 +139,7 @@ Address composition, lighting, pose, expression, camera angle, background, color
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemMsg },
             {
@@ -138,22 +169,26 @@ Address composition, lighting, pose, expression, camera angle, background, color
 
     // Reinforce identity-lock at prompt level (belt-and-suspenders)
     const identityLock = language === "zh"
-      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境。在此基础上放大原图本来就有的气质和优点，再修复点评里指出的所有缺点。"
+      ? "【绝对身份锁】：必须是原图同一个人，同一张脸，同一五官，同一发型发色，同一肤色，同一身材，同一年龄，同一身衣服与配饰，同一环境，同一镜头视角范围与画幅比例。在此基础上放大原图本来就有的气质和优点，再修复点评里指出的所有缺点。"
       : "[ABSOLUTE IDENTITY LOCK]: must be the exact same person from the original — same face, same features, same hair, same skin tone, same body, same age, same outfit, same environment. Amplify the original mood and strengths, then fix every flaw the critique mentioned.";
     const negativeLock = language === "zh"
-      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止千篇一律的奶油暖调。"
+      ? "负面约束：禁止换脸、禁止陌生人、禁止韩式/AI网红脸、禁止改变五官比例、禁止改发型服装、禁止换场景、禁止把补光灯/灯架/穿帮器材/杂乱路人加入画面、禁止千篇一律的奶油暖调。"
       : "Negative: no face swap, no different person, no beautified influencer face, no altered features, no changed hair or outfit, no different scene, no generic warm cream tone.";
     imagePrompt = `${identityLock} ${negativeLock} ${imagePrompt}`;
 
     console.log("Generated image prompt:", imagePrompt);
 
     // Step 2: Doubao Seedream 4.0 image-to-image with the original as reference
+    const { width, height } = inferSizeFromImageData(imageData);
+    const normalizedWidth = Math.max(512, Math.min(1920, Math.round(width / 32) * 32));
+    const normalizedHeight = Math.max(512, Math.min(1920, Math.round(height / 32) * 32));
+
     const doubaoBody: Record<string, unknown> = {
       model: "doubao-seedream-4-0-250828",
       prompt: imagePrompt,
       sequential_image_generation: "disabled",
       response_format: "url",
-      size: "1080x1920",
+      size: `${normalizedWidth}x${normalizedHeight}`,
       stream: false,
       watermark: false,
       seed: 1,
