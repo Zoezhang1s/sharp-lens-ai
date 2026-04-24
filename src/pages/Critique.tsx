@@ -1292,15 +1292,15 @@ const Critique = () => {
 
         if (filteredSections.length > 0) {
           const detailedSection = document.createElement("div");
-          detailedSection.style.cssText = "margin-top: 28px;";
-          detailedSection.innerHTML = `<div style="font-size: 20px; color: #f59e0b; margin-bottom: 18px; font-weight: 700; letter-spacing: 1px;">📝 详细锐评</div>`;
+          detailedSection.style.cssText = "margin-top: 32px;";
+          detailedSection.innerHTML = `<div style="font-size: 24px; color: #f59e0b; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px;">📝 详细锐评</div>`;
 
           filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
-            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 24px; margin-bottom: 18px;";
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 20px; font-weight: 700; color: #f59e0b; margin-bottom: 14px;">${escapeHtml(cleanForDownload(section.title))}</div>
-              <div style="font-size: 18px; line-height: 1.85; color: #e5e5e5;">${highlightHtml(section.content)}</div>
+              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin-bottom: 16px;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 22px; line-height: 1.8; color: #f0f0f0;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
@@ -1310,9 +1310,9 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
+      footerEl.style.cssText = "text-align: center; margin-top: 56px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 90px;";
       footerEl.innerHTML = `
-        <div style="font-size: 16px; color: #777;">由 AI 提供 · 你拍的啥</div>
+        <div style="font-size: 18px; color: #888;">由 AI 提供 · 你拍的啥</div>
       `;
       captureDiv.appendChild(footerEl);
 
