@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Send, ImagePlus, Loader2, ArrowLeft, ZoomIn, X, Sparkles, BookOpen, Share2, Download, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
 import { STYLE_DATA, STYLE_NAME_MAP } from "@/data/styleData";
@@ -14,6 +14,8 @@ interface Persona {
   avatar: string;
   style: string;
   critique: string;
+  translation?: string; // Chinese translation for foreign personas
+  lang?: string; // Original language code
 }
 
 interface Message {
@@ -50,32 +52,49 @@ const Critique = () => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [showDetailed, setShowDetailed] = useState(false);
-  const [fromHistory, setFromHistory] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [, setFromHistory] = useState(false);
   const critiqueStartedRef = useRef(false);
   const [personas] = useState<Persona[]>([
     {
-      name: "李佳琦",
+      name: "陈漫",
       avatar: "",
-      style: "直播一哥",
-      critique: "Oh my god！这滤镜也太重了吧！原相机拍出来皮肤质感完全不一样啊。买它？不存在的，你自己镜子前站一分钟就知道真相了。"
+      style: "时尚摄影师",
+      critique: "从时尚摄影角度，这张的构图和用光都有提升空间。建议找到主体最自信的角度，让光线为肤色服务，而不是简单照亮。"
     },
     {
-      name: "马斯克",
+      name: "张艺谋",
       avatar: "",
-      style: "科技狂人",
-      critique: "This photo is 72% below average. The composition needs a complete redesign. If this were a Tesla product, we'd recall it immediately. China has talented photographers - you should hire one."
+      style: "电影导演",
+      critique: "摄影是光影的艺术，你这张平了。好的照片要有视觉重心，光线要有主次关系。建议研究一下戏剧性用光，让照片有故事感。"
     },
     {
-      name: "王健林",
+      name: "森山大道",
       avatar: "",
-      style: "商业大佬",
-      critique: "先定一个小目标，比方说花500块找个好摄影师。你这张照片最大的问题是什么？格局。你看这构图、这光线，全是问题。这要是我员工拍的，当场让他下班。"
+      style: "街头摄影师",
+      critique: "ストリート写真は空気感だ。この作品はもう少し生命力があればなお良くなる。",
+      translation: "街头摄影讲究氛围感，你这幅作品如果能再多一点生命力会更棒。",
+      lang: "ja"
     },
     {
-      name: "蔡依林",
+      name: "Annie Leibovitz",
       avatar: "",
-      style: "流行天后",
-      critique: "Dancing requires rhythm, photography requires light. 你这首歌舞姿不对！拍照也是，pose太僵硬了啦！自然一点嘛，试试看有没有feel？"
+      style: "人像摄影大师",
+      critique: "The key to portrait photography is capturing the subject's essence. Your subject seems a bit stiff. Try to create a relaxed atmosphere and capture genuine expressions.",
+      translation: "人像摄影的关键是捕捉拍摄对象的本质。你的拍摄对象看起来有点僵硬。试着营造轻松的氛围，捕捉自然的表情。",
+      lang: "en"
+    },
+    {
+      name: "何炅",
+      avatar: "",
+      style: "主持人",
+      critique: "拍照和主持一样，要有'眼'。你这张照片的问题在于观众（镜头）不知道该看哪里。建议明确视觉焦点，让主体更突出。"
+    },
+    {
+      name: "蔡康永",
+      avatar: "",
+      style: "主持人/作家",
+      critique: "我说一个暴击啊——你这张照片没有记忆点。好的照片看一眼就能记住，这张看三眼都记不住。问题出在：构图太满，没有呼吸感。"
     }
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -96,9 +115,6 @@ const Critique = () => {
         setMessages(record.messages as Message[]);
         // Show simplified view when entering from history
         setFromHistory(true);
-        if (record.score > 0) {
-          setShowSimplified(true);
-        }
 
         // If critique is still in progress (no assistant response yet), resume it
         const hasAssistantResponse = record.messages.some((m: any) => m.role === "assistant");
@@ -548,6 +564,56 @@ const Critique = () => {
     );
   };
 
+  // Render detailed section content with links and proper formatting
+  const renderDetailedContent = (text: string) => {
+    // Clean HTML entities and markdown
+    const cleaned = text
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#39;/g, "'")
+      .replace(/\*\*(.*?)\*\*/g, "___MARK___$1___ENDMARK___")
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "___LINK___$1|$2___ENDLINK___");
+
+    // Split into lines and render each
+    const lines = cleaned.split("\n").filter(l => l.trim());
+    return lines.map((line, i) => {
+      // Handle links
+      const parts = line.split(/(___LINK___.*?___ENDLINK___)/g);
+      return (
+        <p key={i} className="text-sm text-foreground leading-relaxed mb-2">
+          {parts.map((part, j) => {
+            if (part.startsWith("___LINK___")) {
+              const match = part.match(/___LINK___(.+?)\|(.+?)___ENDLINK___/);
+              if (match) {
+                const linkText = match[1];
+                const linkUrl = match[2];
+                let href = linkUrl;
+                if (linkUrl.includes("xiaohongshu") || linkUrl.includes("xhslink")) href = linkUrl;
+                if (linkUrl.includes("douyin")) href = linkUrl;
+                return (
+                  <a key={j} href={href} target="_blank" rel="noopener noreferrer"
+                    className="text-primary underline underline-offset-2 hover:text-primary/80">
+                    {linkText}
+                  </a>
+                );
+              }
+            }
+            // Handle bold markers
+            const boldParts = part.split(/___MARK___(.*?)___ENDMARK___/g);
+            return boldParts.map((bp, k) =>
+              k % 2 === 1
+                ? <strong key={`${i}-${j}-${k}`} className="text-primary font-semibold">{bp}</strong>
+                : <span key={`${i}-${j}-${k}`}>{bp}</span>
+            );
+          })}
+        </p>
+      );
+    });
+  };
+
   const renderMessageContent = (msg: Message) => (
     <>
       {msg.imageData && (
@@ -590,12 +656,30 @@ const Critique = () => {
     </>
   );
 
-  // Extract one-liner critique
+  // Extract one-liner critique - brutal and direct
   const getOneLinerCritique = () => {
     const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
     if (!assistantMsg) return "";
-    const lines = assistantMsg.content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("---"));
-    return lines[0] || "这张照片有点意思...";
+    const content = assistantMsg.content;
+    // Extract score first
+    const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+
+    if (score > 0) {
+      if (score < 40) return "烂片一张，没救了。";
+      if (score < 55) return "拍得一般，凑合看吧。";
+      if (score < 70) return "有点东西，但问题不少。";
+      if (score < 85) return "不错，但还能更好。";
+      return "可以啊，这水平能看了！";
+    }
+
+    const lines = content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith("---"));
+    const firstLine = lines[0] || "";
+    // Make it more brutal
+    if (firstLine.includes("不错") || firstLine.includes("很好")) return firstLine.slice(0, 30);
+    if (firstLine.includes("一般") || firstLine.includes("普通")) return "就...一般吧，没啥亮点。";
+    if (firstLine.includes("问题") || firstLine.includes("需要")) return "问题不少，得改。";
+    return firstLine.slice(0, 25) || "这照片...自己看吧。";
   };
 
   // Parse critique into sections by ## headers
@@ -628,30 +712,69 @@ const Critique = () => {
     return sections;
   };
 
-  // Share - link opens directly to expanded detailed view
-  const handleShare = async () => {
-    const shareUrl = historyId
-      ? `${window.location.origin}/critique?history=${historyId}&expanded=true`
-      : window.location.href;
+  // Share - opens share modal
+  const handleShare = () => {
+    setShowShareModal(true);
+  };
 
-    if (!navigator.share) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success(t("链接已复制到剪贴板", "Link copied to clipboard"));
-      } catch {
-        toast.error(t("分享失败", "Share failed"));
-      }
-      return;
-    }
+  const getShareUrl = () => {
+    return historyId
+      ? `${window.location.origin}/critique?history=${historyId}&expanded=true`
+      : `${window.location.origin}/critique?expanded=true`;
+  };
+
+  const shareToWechat = async () => {
+    const url = getShareUrl();
     try {
-      await navigator.share({
-        title: t("照片锐评", "Photo Critique"),
-        text: getOneLinerCritique(),
-        url: shareUrl,
-      });
+      await navigator.clipboard.writeText(url);
+      toast.success(t("链接已复制，打开微信分享", "Link copied, open WeChat to share"));
     } catch {
-      // User cancelled or error
+      toast.error(t("复制失败", "Copy failed"));
     }
+    setShowShareModal(false);
+  };
+
+  const shareToXiaohongshu = async () => {
+    const url = getShareUrl();
+    // Try to open Xiaohongshu web share
+    window.open(`https://www.xiaohongshu.com/explore/share?text=${encodeURIComponent(getOneLinerCritique())}&url=${encodeURIComponent(url)}`, "_blank");
+    setShowShareModal(false);
+  };
+
+  const shareToDouyin = async () => {
+    const url = getShareUrl();
+    // Try to open Douyin web share
+    window.open(`https://www.douyin.com/share?text=${encodeURIComponent(getOneLinerCritique())}&url=${encodeURIComponent(url)}`, "_blank");
+    setShowShareModal(false);
+  };
+
+  const shareCopyLink = async () => {
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(t("链接已复制", "Link copied"));
+    } catch {
+      toast.error(t("复制失败", "Copy failed"));
+    }
+    setShowShareModal(false);
+  };
+
+  // Clean text for download - remove HTML entities and markdown
+  const cleanForDownload = (text: string): string => {
+    return text
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#39;/g, "'")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*/g, "")
+      .replace(/^#{1,6}\s*/gm, "")
+      .replace(/\|/g, " ")
+      .replace(/---/g, "")
+      .replace(/>/g, "")
+      .trim();
   };
 
   // Download critique as image - complete long page with all content
@@ -670,16 +793,29 @@ const Critique = () => {
       const oneLiner = getOneLinerCritique();
       const generatedImageMsg = messages.find(m => m.generatedImage);
 
-      // Create a complete long page container
+      // Create a complete long page container with dark background
       const captureDiv = document.createElement("div");
       captureDiv.style.cssText = `
+        position: relative;
         width: 800px;
         padding: 40px;
-        background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
+        background: #0a0a0f;
         color: white;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         min-height: 100vh;
+        box-sizing: border-box;
       `;
+
+      // Logo with speech bubble in bottom right
+      const logoBubble = document.createElement("div");
+      logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10;";
+      logoBubble.innerHTML = `
+        <div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          烂片一张~
+        </div>
+        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
+      `;
+      captureDiv.appendChild(logoBubble);
 
       // Header with logo text
       const headerEl = document.createElement("div");
@@ -744,12 +880,16 @@ const Critique = () => {
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
         personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px;";
+        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.6; color: #ccc;">${cleanForDownload(persona.critique)}</div>`;
+        if (persona.translation) {
+          critiqueHtml += `<div style="font-size: 12px; line-height: 1.6; color: #888; margin-top: 8px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">${persona.translation}</div>`;
+        }
         personaCard.innerHTML = `
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <span style="font-weight: 600; font-size: 14px; color: white;">${persona.name}</span>
             <span style="font-size: 11px; color: #888; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">${persona.style}</span>
           </div>
-          <div style="font-size: 14px; line-height: 1.6; color: #ccc;">${persona.critique}</div>
+          ${critiqueHtml}
         `;
         groupSection.appendChild(personaCard);
       });
@@ -767,8 +907,8 @@ const Critique = () => {
             const sectionCard = document.createElement("div");
             sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${section.title}</div>
-              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${section.content.trim().replace(/\*\*\*/g, '').replace(/\*\*/g, '').replace(/\n/g, '<br/>')}</div>
+              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${cleanForDownload(section.title)}</div>
+              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${cleanForDownload(section.content).replace(/\n/g, '<br/>')}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
@@ -778,7 +918,7 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);";
+      footerEl.style.cssText = "text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
       footerEl.innerHTML = `
         <div style="font-size: 12px; color: #555;">由 AI 提供 · 你拍的啥</div>
       `;
@@ -787,7 +927,7 @@ const Critique = () => {
       document.body.appendChild(captureDiv);
 
       const canvas = await html2canvas(captureDiv, {
-        backgroundColor: null,
+        backgroundColor: "#0a0a0f",
         scale: 2,
         useCORS: true,
         allowTaint: true,
@@ -843,6 +983,35 @@ const Critique = () => {
           </Button>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
+          <div className="glass-card p-6 w-full max-w-sm space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg text-foreground">{t("分享到", "Share to")}</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <button onClick={shareToWechat} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white text-xl">微</div>
+                <span className="text-xs text-foreground">{t("微信", "WeChat")}</span>
+              </button>
+              <button onClick={shareToXiaohongshu} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white text-xl">红</div>
+                <span className="text-xs text-foreground">{t("小红书", "Red Book")}</span>
+              </button>
+              <button onClick={shareToDouyin} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-white text-xl">抖</div>
+                <span className="text-xs text-foreground">{t("抖音", "Douyin")}</span>
+              </button>
+            </div>
+            <button onClick={shareCopyLink} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+              {t("复制链接", "Copy Link")}
+            </button>
+            <Button variant="ghost" onClick={() => setShowShareModal(false)} className="w-full">
+              {t("取消", "Cancel")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content - Simplified View (always shown when critique complete) */}
       {score !== null && (
@@ -912,36 +1081,40 @@ const Critique = () => {
                       </span>
                     </div>
                     <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
+                    {persona.translation && (
+                      <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
+                        {persona.translation}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
 
             {/* 5. Collapsible Detailed Critique */}
-            <Card>
-              <CardContent className="pt-4">
-                <button
-                  onClick={() => setShowDetailed(!showDetailed)}
-                  className="w-full flex items-center justify-between text-left"
-                >
-                  <span className="font-bold text-sm text-foreground">
-                    {t("查看详细锐评", "View Detailed Critique")}
-                  </span>
-                  <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showDetailed ? "rotate-90" : ""}`} />
-                </button>
+            <Button
+              onClick={() => setShowDetailed(!showDetailed)}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              variant="default"
+            >
+              {t("查看详细锐评", "View Detailed Critique")}
+              <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${showDetailed ? "rotate-90" : ""}`} />
+            </Button>
 
-                {showDetailed && (
-                  <div className="mt-4 space-y-4">
-                    {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "").map((section, i) => (
-                      <div key={i}>
-                        <h4 className="text-sm font-semibold text-primary mb-1">{section.title}</h4>
-                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{section.content.trim()}</p>
+            {showDetailed && (
+              <div className="space-y-4">
+                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "").map((section, i) => (
+                  <Card key={i}>
+                    <CardContent className="pt-4">
+                      <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
+                      <div className="space-y-1">
+                        {renderDetailedContent(section.content.trim())}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
