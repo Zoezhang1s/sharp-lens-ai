@@ -163,8 +163,9 @@ const SYSTEM_PROMPT_EN = `You are "WhatDidYouShoot" — the most professional, s
 &nbsp;
 
 ## 🎨 Style Detection
-**Current Style**: Choose from: Japanese Fresh, Korean Minimal, Neo-Chinese, Boudoir / Intimate, Natural Outdoor, Moody Film, Power Woman, Cyberpunk, Classic Portrait, Dark & Edgy, Retro Film, Urban Street, Minimalist, High Fashion
-**Recommended**: 1-2 better directions, one sentence why
+**Current Style**: One sentence describing the photo's current vibe (free-form, no list constraint)
+**Best Recommendation**: The style direction that **truly fits this photo best**. Do NOT be limited by the encyclopedia list — feel free to coin a hybrid, niche, or original style name. One sentence on why this direction works.
+**Encyclopedia Match**: Pick the **closest match from the encyclopedia list** (must choose one): Japanese Fresh, Korean Minimal, Neo-Chinese, Boudoir / Intimate, Natural Outdoor, Moody Film, Power Woman, Cyberpunk, Classic Portrait, Dark & Edgy, Retro Film, Urban Street, Minimalist, High Fashion. One sentence on why it's the closest.
 
 &nbsp;
 
