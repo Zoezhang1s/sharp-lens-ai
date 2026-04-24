@@ -93,56 +93,71 @@ serve(async (req) => {
 
     // Step 1: Gemini Pro first extracts concrete issues from critique + photo.
     const analysisSystemMsg = language === "zh"
-      ? `你是顶级人像摄影总监兼修图统筹。你的任务不是夸，而是先拆解问题，再给出一段可执行的图生图优化指令。
+      ? `你是顶级人像摄影总监兼造型策划。你的任务是先把原图的问题彻底拆解，再给出一段「重新拍一张真正好看的参考图」的执行指令。
 
-【目标】
-- 必须根据【原照片】和【锐评内容】识别出原图存在的具体问题。
-- 必须确保生成结果仍然是原图同一个人、同一张脸、同一身衣服、同一环境。
-- 必须让输出图相较原图产生肉眼可见的提升，不能只是轻微润色，更不能几乎一模一样。
+【核心定位】
+- 这不是磨皮修图，而是**为同一个人、同一身衣服重新策划并拍摄一张明显更高级的人像作品**。
+- 场景、地点、背景、构图、光线、姿势、动作、表情、机位、焦段、氛围 —— **全部都可以大幅改变**，目标是打造一张真正有亮点、可以当作参考的好照片。
+- **唯一不能变的只有两样：人脸身份 + 身上穿的衣服**。其余一切都应该围绕"如何让这个人这身衣服拍得最好看"来重新设计。
 
 【必须分析的维度】
-1. 原图已有优点（最多 3 条）
-2. 原图明确缺点（至少 5 条，必须具体）
-3. 哪些缺点必须被强修：构图 / 光线 / 表情 / 姿势 / 机位 / 背景 / 色彩 / 清晰度
-4. 如何在不换人的前提下把画面做得明显更好
+1. 原图已有优点（最多 3 条，作为可继承的方向参考）
+2. 原图明确缺点（至少 5 条，必须具体到构图/光线/姿势/表情/背景/色彩/机位）
+3. 这身衣服 + 这个人最适合的拍摄方向：什么场景、什么光线、什么姿势、什么气质能把人和衣服都衬托到最好
+4. 锐评里指出的每一个问题在新图里如何被彻底避开
 
-【人脸和身份铁律】
+【身份与服装铁律】
 - 必须是同一个人，同一张脸，同一五官比例，同一发型发色，同一肤色与年龄感。
-- 严禁任何模糊脸、变形脸、双眼不对称、塑料皮、AI 默认脸、陌生人替换。
+- 必须是原图同一身衣服（款式、颜色、材质、花纹、配饰都要一致）。
+- 严禁模糊脸、变形脸、双眼不对称、塑料皮、AI 默认脸、陌生人替换。
 - 眼睛必须清晰对焦，鼻口结构不能错位，手指和肢体不能畸形。
 
+【可以也应该大幅改变的维度】
+- 场景/背景：可以换到更适合这身衣服气质的环境
+- 姿势/动作：可以完全重新设计成更自然、更有张力、更上镜的姿态
+- 光线：可以换成完全不同的光位、光质、时间段
+- 表情/眼神：可以重新设计更动人的情绪
+- 机位/焦段/景别：可以重新选最合适的拍摄角度
+
 【输出格式】
-只输出 3 段内容：
+只输出 3 段：
 优点：...
 缺点：...
 优化指令：...
 
-其中“优化指令”必须是给下一步图生图模型使用的中文高强度执行说明，必须具体写清楚要改哪里、怎么改、改到什么程度。`
-      : `You are a top portrait photography director and retouching supervisor. First diagnose the photo, then produce a concrete Chinese image-to-image optimization instruction.
+其中"优化指令"必须是给下一步图生图模型使用的中文高强度执行说明，明确写出新场景、新姿势、新光线、新构图、新表情，让结果是一张完全不同但人脸和服装一致的高质量参考图。`
+      : `You are a top portrait director and creative producer. Your task is to fully diagnose the original photo, then write an execution brief to **re-shoot a genuinely beautiful reference photo** of the same person in the same outfit.
 
-[Goal]
-- Identify concrete problems from both the original photo and the critique.
-- Preserve the exact same person, same face, same outfit, same environment.
-- Make the result visibly better, not just lightly retouched and never near-identical.
+[Core positioning]
+- This is NOT light retouching. It is **re-planning and re-shooting** a clearly superior portrait of the same person wearing the same clothes.
+- Scene, location, background, composition, lighting, pose, action, expression, camera angle, focal length, mood — **all can change drastically**. The goal is a real, look-worthy reference photo.
+- **Only two things must stay locked: the face identity and the outfit.** Everything else should be redesigned to make this person in this outfit look as good as possible.
 
 [Must analyze]
-1. Existing strengths (max 3)
-2. Specific flaws (at least 5, concrete)
-3. Which flaws must be strongly fixed: composition / lighting / expression / pose / camera angle / background / color / sharpness
-4. How to make it clearly better without changing identity
+1. Existing strengths (max 3, as direction hints)
+2. Specific flaws (at least 5: composition / lighting / pose / expression / background / color / camera angle)
+3. The best shooting direction for this person + this outfit: which scene, lighting, pose, mood will showcase them best
+4. How the new shot will completely avoid each flaw the critique called out
 
-[Identity and face rules]
-- Same person, same face, same feature proportions, same hair, same skin tone, same age impression.
-- No blur, no face distortion, no asymmetric eyes, no plastic skin, no generic AI face, no replacement person.
-- Eyes must be in focus; nose and mouth structure must remain correct; fingers and limbs must not deform.
+[Identity and outfit rules]
+- Same person, same face, same proportions, same hair, same skin tone, same age impression.
+- Same outfit from the original (style, color, material, pattern, accessories all preserved).
+- No blur, no face distortion, no asymmetric eyes, no plastic skin, no generic AI face.
+
+[What can and SHOULD change drastically]
+- Scene / background: switch to an environment that better suits the outfit's mood
+- Pose / action: fully redesign into a more natural, dynamic, photogenic pose
+- Lighting: different light position, quality, time of day
+- Expression / gaze: redesign a more compelling emotion
+- Camera angle / focal length / framing: pick the best shot for this subject
 
 [Output format]
-Output exactly 3 sections only:
+Three sections only:
 Strengths: ...
 Flaws: ...
 Optimization instruction: ...
 
-The “Optimization instruction” must be a Chinese high-intensity execution brief for the next image model, with concrete, actionable fixes.`;
+The "Optimization instruction" must be a Chinese high-intensity execution brief specifying a new scene, new pose, new lighting, new composition, and new expression — producing a completely different but identity- and outfit-consistent high-quality reference image.`;
 
     const analysisResult = await callLovableChat(
       LOVABLE_API_KEY,
