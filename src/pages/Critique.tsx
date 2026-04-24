@@ -1326,12 +1326,25 @@ const Critique = () => {
               </CardContent>
             </Card>
 
-            {/* 2. One-liner Critique - extracted from detailed critique */}
-            {getOneLinerCritique() && (
+            {/* 2. Score + One-liner Critique - shown together above 群友锐评 */}
+            {(getOneLinerCritique() || score !== null) && (
               <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
-                <CardContent className="pt-4 pb-4">
-                  <h3 className="text-sm font-bold text-primary mb-2">💥 {t("一句话暴击", "One-liner Roast")}</h3>
-                  <p className="text-sm text-foreground leading-relaxed">{getOneLinerCritique()}</p>
+                <CardContent className="pt-4 pb-4 space-y-3">
+                  {score !== null && (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-gradient-gold">{score}</span>
+                      <span className="text-sm text-muted-foreground">/ 100</span>
+                      <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full ml-auto">
+                        {t("综合评分", "Overall Score")}
+                      </span>
+                    </div>
+                  )}
+                  {getOneLinerCritique() && (
+                    <div>
+                      <h3 className="text-sm font-bold text-primary mb-2">💥 {t("一句话暴击", "One-liner Roast")}</h3>
+                      <p className="text-sm text-foreground leading-relaxed">{getOneLinerCritique()}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
