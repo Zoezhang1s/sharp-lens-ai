@@ -76,33 +76,88 @@ export function extractScoreFromText(text: string): number {
 
 export function generateTitle(text: string, lang: string): string {
   const lines = text.split("\n");
+  const fullText = text.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()🎨📱📝📐✨🔧💡❌>]/g, "");
 
+  // Extract score
+  const scoreMatch = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+  const score = scoreMatch ? scoreMatch[1] : "";
+
+  // Extract style/genre keywords
+  const stylePatterns = [
+    /风格[:\s]*([^\n，,。！？]{2,10})/,
+    /当前风格[:\s]*([^\n，,。！？]{2,10})/,
+    /类型[:\s]*([^\n，,。！？]{2,10})/,
+    /场景[:\s]*([^\n，,。！？]{2,10})/,
+  ];
   let style = "";
-  for (const line of lines) {
-    if (line.includes("当前风格") || line.includes("Current Style")) {
-      const cleaned = line.replace(/\*\*/g, "").replace(/当前风格[:\s]*/g, "").replace(/Current Style[:\s]*/g, "").trim();
-      if (cleaned.length > 1 && cleaned.length < 30) {
-        style = cleaned;
+  for (const pattern of stylePatterns) {
+    const match = fullText.match(pattern);
+    if (match && match[1]) {
+      style = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract most prominent critique keyword (what needs improvement or is noteworthy)
+  const negativePatterns = [
+    /光[线影]+(太|比较|比较)?([一-龥]{2,8})/,
+    /构[图](太|比较|比较)?([一-龥]{2,8})/,
+    /曝[光明](太|过|欠)?([一-龥]{2,8})/,
+    /色[调彩](太|比较|比较)?([一-龥]{2,8})/,
+    /姿[势态](太|比较|僵硬|不自然)?([一-龥]{2,8})/,
+    /背[景虚](太|比较)?([一-龥]{2,8})/,
+    /表[情达](不自然|僵硬|平淡)?([一-龥]{2,8})/,
+    /对[焦清晰度](不|虚)?([一-龥]{2,8})/,
+  ];
+
+  let critiqueKeyword = "";
+  for (const pattern of negativePatterns) {
+    const match = fullText.match(pattern);
+    if (match) {
+      critiqueKeyword = match[0].slice(0, 12);
+      break;
+    }
+  }
+
+  // If no negative keyword found, look for positive
+  if (!critiqueKeyword) {
+    const positivePatterns = [
+      /光[线影]+[很讲较不错好][一-龥]*/,
+      /构[图]+[很讲较不错好][一-龥]*/,
+      /表[情达]+[很自然不错好][一-龥]*/,
+      /氛[围感]+[很不错好][一-龥]*/,
+    ];
+    for (const pattern of positivePatterns) {
+      const match = fullText.match(pattern);
+      if (match) {
+        critiqueKeyword = "✓" + match[0].slice(0, 10);
         break;
       }
     }
   }
 
-  const scoreMatch = text.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
-  const score = scoreMatch ? scoreMatch[1] : "";
-
-  if (style && score) {
-    return lang === "zh" ? `${style} · ${score}分` : `${style} · ${score}pts`;
+  // Build title
+  if (style && critiqueKeyword && score) {
+    return `${style} · ${critiqueKeyword} · ${score}分`;
   }
-  if (style) return style;
+  if (style && score) {
+    return `${style} · ${score}分`;
+  }
+  if (style && critiqueKeyword) {
+    return `${style} · ${critiqueKeyword}`;
+  }
+  if (critiqueKeyword && score) {
+    return `${critiqueKeyword} · ${score}分`;
+  }
+  if (score) {
+    return `综合评分 ${score}分`;
+  }
 
+  // Fallback: find first meaningful sentence
   for (const line of lines) {
-    if (line.includes("构图") || line.includes("Composition") || line.includes("姿势") || line.includes("Pose")) {
-      continue;
-    }
     const cleaned = line.replace(/\*\*/g, "").replace(/[#🔥📊💯（）()🎨📱📝📐✨🔧💡❌>]/g, "").trim();
-    if (cleaned.length > 4 && cleaned.length < 30 && !line.startsWith("#") && !line.startsWith("---") && !line.startsWith("|")) {
-      return score ? `${cleaned.slice(0, 20)} · ${score}${lang === "zh" ? "分" : "pts"}` : cleaned.slice(0, 25);
+    if (cleaned.length > 4 && cleaned.length < 30 && !line.startsWith("#") && !line.startsWith("---") && !line.startsWith("|") && !line.includes("评分") && !line.includes("Score")) {
+      return cleaned.slice(0, 20);
     }
   }
   return lang === "zh" ? "照片点评" : "Photo Critique";
