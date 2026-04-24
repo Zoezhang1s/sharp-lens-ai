@@ -1373,56 +1373,60 @@ const Critique = () => {
 
             {showDetailed && (
               <div className="space-y-4">
-                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "").map((section, i) => {
-                  // Check if this is 风格识别 section
-                  const isStyleSection = section.title.includes("风格") || section.title.includes("风格识别");
-                  // Check if this is 快速诊断 section
-                  const isQuickDiagSection = section.title.includes("快速诊断") || section.title.includes("诊断");
+                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "")
+                  .filter((section) => {
+                    // Hide one-liner roast and score sections — they're shown above
+                    const t = section.title;
+                    return !(
+                      t.includes("一句话暴击") ||
+                      t.includes("一句话总结") ||
+                      t.includes("Opening Roast") ||
+                      t.includes("One-liner") ||
+                      t.includes("评分") ||
+                      t.includes("Score")
+                    );
+                  })
+                  .map((section, i) => {
+                    // Check if this is 风格识别 section
+                    const isStyleSection = section.title.includes("风格") || section.title.includes("Style");
 
-                  return (
-                    <Card key={i}>
-                      <CardContent className="pt-4">
-                        {isStyleSection ? (
-                          <>
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-semibold text-primary">{section.title}</h4>
-                              {messages.find(m => m.detectedStyleId) && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="text-primary h-auto p-0"
-                                  onClick={() => {
-                                    const styleId = messages.find(m => m.detectedStyleId)?.detectedStyleId;
-                                    if (styleId) navigate(`/styles/${styleId}`, { state: { fromCritique: true, historyId } });
-                                  }}
-                                >
-                                  查看风格攻略 →
-                                </Button>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              {renderDetailedContent(section.content.trim())}
-                            </div>
-                          </>
-                        ) : isQuickDiagSection ? (
-                          <>
-                            <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
-                            <div className="space-y-1">
-                              {renderDetailedContent(section.content.trim())}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
-                            <div className="space-y-1">
-                              {renderDetailedContent(section.content.trim())}
-                            </div>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                    return (
+                      <Card key={i}>
+                        <CardContent className="pt-4">
+                          {isStyleSection ? (
+                            <>
+                              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <h4 className="text-sm font-semibold text-primary">{section.title}</h4>
+                                {messages.find(m => m.detectedStyleId) && (
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="text-primary h-auto p-0"
+                                    onClick={() => {
+                                      const styleId = messages.find(m => m.detectedStyleId)?.detectedStyleId;
+                                      if (styleId) navigate(`/styles/${styleId}`, { state: { fromCritique: true, historyId } });
+                                    }}
+                                  >
+                                    {t("查看风格攻略 →", "View style guide →")}
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                {renderDetailedContent(section.content.trim())}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
+                              <div className="space-y-1">
+                                {renderDetailedContent(section.content.trim())}
+                              </div>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
               </div>
             )}
           </div>
