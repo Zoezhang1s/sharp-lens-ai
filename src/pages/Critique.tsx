@@ -672,6 +672,7 @@ const Critique = () => {
     const imagePrompt = extractImagePrompt(critiqueText);
 
     setIsGeneratingImage(true);
+    setImageGenAttempted(true);
     // 15-minute hard timeout — if the function takes longer, surface a clear error
     const controller = new AbortController();
     const FIFTEEN_MIN = 15 * 60 * 1000;
