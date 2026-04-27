@@ -1638,10 +1638,29 @@ const Critique = () => {
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg">
+                  ) : isGeneratingImage ? (
+                    <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-4 min-h-[120px]">
                       <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" />
-                      <p className="text-xs text-muted-foreground">{t("AI参考图生成中...", "Generating AI reference...")}</p>
+                      <p className="text-xs text-muted-foreground text-center">{t("AI参考图生成中...", "Generating AI reference...")}</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-4 min-h-[120px] text-center">
+                      <Sparkles className="w-5 h-5 text-muted-foreground/60 mb-2" />
+                      <p className="text-xs text-muted-foreground">
+                        {t("此记录暂无AI参考图", "No AI reference for this record")}
+                      </p>
+                      {!isLoading && messages.some(m => m.role === "assistant" && !m.generatedImage) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
+                            if (assistantMsg) generateOptimizedImage(assistantMsg.content, messages);
+                          }}
+                          className="mt-2 text-xs text-primary hover:underline"
+                        >
+                          {t("点击生成", "Tap to generate")}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
