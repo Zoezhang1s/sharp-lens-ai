@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
 import { STYLE_DATA, STYLE_NAME_MAP } from "@/data/styleData";
-import { useHistory, extractScoreFromText, generateTitle } from "@/hooks/useHistory";
+import { useHistory, extractScoreFromText, generateTitle, loadGeneratedImage, saveGeneratedImage } from "@/hooks/useHistory";
 
 interface Persona {
   name: string;
@@ -22,6 +22,7 @@ interface Message {
   content: string;
   imageData?: string;
   generatedImage?: string;
+  generatedImageKey?: string;
   detectedStyleId?: string;
 }
 
