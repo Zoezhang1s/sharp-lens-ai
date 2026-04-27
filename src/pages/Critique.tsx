@@ -177,7 +177,7 @@ const Critique = () => {
       const data = await resp.json();
       const aiTitle = (data?.title || "").toString().trim();
       if (aiTitle) {
-        updateRecord(hid, { title: aiTitle });
+        updateRecord(hid, { title: aiTitle, titleLocked: true });
         titleDoneForHistoryRef.current = hid;
       }
     } catch (e) {
