@@ -54,6 +54,36 @@ const detectStyleFromText = (text: string): string | undefined => {
   return undefined;
 };
 
+// Extract the savage one-liner that lives directly under "## 🔥 一句话暴击" / "## 🔥 Opening Roast".
+// Returns "" if the section header hasn't streamed in yet OR its body is still empty.
+const extractOneLinerRoast = (text: string): string => {
+  const lines = text.split("\n");
+  const headerIdx = lines.findIndex((l) => {
+    const t = l.trim();
+    if (!t.startsWith("#")) return false;
+    return t.includes("一句话暴击") || /opening\s+roast/i.test(t);
+  });
+  if (headerIdx === -1) return "";
+  // Walk forward, skip blanks, stop at the next heading or score / divider line
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    // Stop if we hit the next section before finding any body text
+    if (trimmed.startsWith("#") || trimmed.startsWith("---") || trimmed.startsWith("|")) return "";
+    // Strip markdown noise (bold, italic, leading parentheses, leading punctuation)
+    const cleaned = trimmed
+      .replace(/^>\s*/, "")
+      .replace(/\*\*/g, "")
+      .replace(/^\*+|\*+$/g, "")
+      .replace(/^[（(]/, "")
+      .replace(/[）)]$/, "")
+      .trim();
+    if (cleaned.length >= 4) return cleaned;
+  }
+  return "";
+};
+
 const buildPersonaBrief = (text: string): string => {
   return text
     .split("\n")
