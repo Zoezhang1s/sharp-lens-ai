@@ -14,6 +14,48 @@ export interface HistoryRecord {
 const STORAGE_KEY = "photo-critique-history";
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const MAX_THUMB_SIZE = 150;
+const IMAGE_DB_NAME = "photo-critique-images";
+const IMAGE_DB_STORE = "images";
+
+function openImageDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB is not available"));
+      return;
+    }
+    const req = indexedDB.open(IMAGE_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(IMAGE_DB_STORE)) {
+        req.result.createObjectStore(IMAGE_DB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error("Failed to open image DB"));
+  });
+}
+
+export async function saveGeneratedImage(key: string, dataUrl: string): Promise<void> {
+  const db = await openImageDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(IMAGE_DB_STORE, "readwrite");
+    tx.objectStore(IMAGE_DB_STORE).put(dataUrl, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("Failed to save generated image"));
+  });
+  db.close();
+}
+
+export async function loadGeneratedImage(key: string): Promise<string | null> {
+  const db = await openImageDb();
+  const result = await new Promise<string | null>((resolve, reject) => {
+    const tx = db.transaction(IMAGE_DB_STORE, "readonly");
+    const req = tx.objectStore(IMAGE_DB_STORE).get(key);
+    req.onsuccess = () => resolve(typeof req.result === "string" ? req.result : null);
+    req.onerror = () => reject(req.error || new Error("Failed to load generated image"));
+  });
+  db.close();
+  return result;
+}
 
 function compressImage(base64: string): Promise<string> {
   return new Promise((resolve) => {
