@@ -7,7 +7,7 @@ export interface HistoryRecord {
   title: string;
   score: number;
   timestamp: number;
-  messages: Array<{ role: string; content: string; imageData?: string; generatedImage?: string; detectedStyleId?: string }>;
+  messages: Array<{ role: string; content: string; imageData?: string; generatedImage?: string; generatedImageKey?: string; detectedStyleId?: string }>;
   titleLocked?: boolean; // once AI title is set, never overwrite
 }
 
@@ -40,7 +40,10 @@ function lightenForStorage(records: HistoryRecord[]): any[] {
       content: m.content,
       imageData: m.imageData,
       detectedStyleId: m.detectedStyleId,
-      generatedImage: m.generatedImage, // KEEP — needed to avoid regenerating from history
+      generatedImageKey: m.generatedImageKey,
+      // Keep legacy/small generated images only when no IndexedDB key exists.
+      // New generated AI images are large data URLs and live in IndexedDB, so localStorage won't hit quota.
+      generatedImage: m.generatedImageKey ? undefined : m.generatedImage,
     })),
   }));
 }
