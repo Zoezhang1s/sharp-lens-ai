@@ -99,8 +99,8 @@ const Critique = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addRecord, updateRecord, getRecord } = useHistory();
   const [personas, setPersonas] = useState<Persona[]>([]);
-  const [isLoadingPersonas, setIsLoadingPersonas] = useState(false);
-  const [personasError, setPersonasError] = useState<string | null>(null);
+  const [savedOneLiner, setSavedOneLiner] = useState<string>("");
+  const [savedScore, setSavedScore] = useState<number | null>(null);
 
   // Persona cache helpers — keyed by historyId so re-entering shows same personas
   const loadCachedPersonas = (hid: string | null): Persona[] | null => {
@@ -303,29 +303,40 @@ const Critique = () => {
         // Show simplified view when entering from history
         setFromHistory(true);
 
-        // If title was already AI-generated and locked, lock the ref so we never overwrite
-        if ((record as any).titleLocked) {
-          titleDoneForHistoryRef.current = hid;
+        // Check if critique is complete (has assistant message with substantial content)
+        const hasAssistantMessage = record.messages.some((m: any) => m.role === "assistant" && !m.generatedImage);
+        const hasGeneratedImage = record.messages.some((m: any) => m.role === "assistant" && m.generatedImage);
+        const assistantMsg = record.messages.find((m: any) => m.role === "assistant" && !m.generatedImage);
+
+        // Extract and save one-liner and score from existing assistant message
+        if (assistantMsg) {
+          const content = assistantMsg.content || "";
+          const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+          if (scoreMatch) setSavedScore(parseInt(scoreMatch[1], 10));
+
+          const lines = content.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
+            if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 80) {
+              const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+              if (cleaned.length > 5) {
+                setSavedOneLiner(cleaned);
+                break;
+              }
+            }
+          }
         }
 
-        // Check what we have in this history record
-        const hasAssistantText = record.messages.some(
-          (m: any) => m.role === "assistant" && !m.generatedImage && (m.content || "").trim().length > 0
-        );
-        const hasGeneratedImage = record.messages.some(
-          (m: any) => m.role === "assistant" && m.generatedImage
-        );
-
-        // Mark critique as already started so polling/effects don't re-trigger anything
-        critiqueStartedRef.current = true;
-
-        if (!hasAssistantText && !hasGeneratedImage) {
-          // No assistant content at all — only then run a fresh critique
+        // If has assistant message with content, critique is complete - just view it
+        if (hasAssistantMessage || hasGeneratedImage) {
+          // Critique is complete, just view it - don't retry
+        } else {
+          // No assistant response - need to start critique
           const userMsg = record.messages.find((m: any) => m.role === "user");
           if (userMsg) {
             critiqueStartedRef.current = false; // allow trigger
             setIsLoading(true);
-            setMessages([userMsg as Message]);
             setTimeout(() => {
               triggerCritiqueWithRetry([userMsg as Message], true);
             }, 100);
@@ -388,6 +399,29 @@ const Critique = () => {
       const detectedStyleId = detectStyleFromText(assistantSoFar);
       setMessages((prev) => {
         const last = prev[prev.length - 1];
+        const isNew = last?.role !== "assistant" || last?.generatedImage;
+
+        if (isNew) {
+          // First chunk - extract and save one-liner and score
+          const scoreMatch = assistantSoFar.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+          const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+          if (score !== null) setSavedScore(score);
+
+          // Extract one-liner
+          const lines = assistantSoFar.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
+            if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 80) {
+              const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+              if (cleaned.length > 5) {
+                setSavedOneLiner(cleaned);
+                break;
+              }
+            }
+          }
+        }
+
         if (last?.role === "assistant" && !last.generatedImage) {
           return prev.map((m, i) =>
             i === prev.length - 1 ? { ...m, content: assistantSoFar, detectedStyleId } : m
@@ -840,12 +874,6 @@ const Critique = () => {
         .replace(/&#39;/g, "'");
     };
 
-    const getSearchLink = (linkText: string): string => {
-      // Convert link text to a Google search link
-      const searchQuery = encodeURIComponent(linkText + " 摄影");
-      return `https://www.google.com/search?q=${searchQuery}`;
-    };
-
     const renderInline = (text: string) => {
       // Decode HTML entities first
       const decoded = decodeHtmlEntities(text);
@@ -854,10 +882,9 @@ const Critique = () => {
       return linkParts.map((seg, si) => {
         const linkMatch = seg.match(/^\[(.*?)\]\((.*?)\)$/);
         if (linkMatch) {
-          // Use the actual URL from the markdown link, not a fallback Google search
           return (
             <a key={si} href={linkMatch[2]} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors no-underline">
+              className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">
               {linkMatch[1]}
             </a>
           );
@@ -1193,9 +1220,7 @@ const Critique = () => {
 
       // Get main critique content
       const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
-      const score = getScore();
-      const oneLiner = getOneLinerCritique();
-      const generatedImageMsg = [...messages].reverse().find(m => m.generatedImage);
+      const generatedImageMsg = messages.find(m => m.generatedImage);
 
       // Create a complete long page container with dark background
       const captureDiv = document.createElement("div");
@@ -1280,23 +1305,23 @@ const Critique = () => {
       captureDiv.appendChild(imageSection);
 
       // Score Card
-      if (score !== null) {
+      if (savedScore !== null) {
         const scoreSection = document.createElement("div");
         scoreSection.style.cssText = "text-align: center; margin-bottom: 32px;";
         scoreSection.innerHTML = `
-          <span style="font-size: 88px; font-weight: bold; color: #f59e0b; line-height: 1;">${score}</span>
-          <span style="font-size: 32px; color: #888; margin-left: 12px;">/ 100</span>
+          <span style="font-size: 48px; font-weight: bold; color: #f59e0b;">${savedScore}</span>
+          <span style="font-size: 20px; color: #888; margin-left: 8px;">/ 100</span>
         `;
         captureDiv.appendChild(scoreSection);
       }
 
       // One-liner Critique
-      if (oneLiner) {
+      if (savedOneLiner) {
         const oneLinerSection = document.createElement("div");
         oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 28px 26px; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px; text-align: center;";
         oneLinerSection.innerHTML = `
-          <div style="font-size: 22px; color: #f59e0b; font-weight: 700; line-height: 1; margin: 0;">💥 一句话暴击</div>
-          <div style="font-size: 28px; line-height: 1.5; color: white; font-weight: 600; margin: 0;">${oneLiner}</div>
+          <div style="font-size: 12px; color: #f59e0b; margin-bottom: 8px; font-weight: 600;">💥 一句话暴击</div>
+          <div style="font-size: 15px; line-height: 1.8; color: white;">${savedOneLiner}</div>
         `;
         captureDiv.appendChild(oneLinerSection);
       }
@@ -1491,8 +1516,6 @@ const Critique = () => {
     return match ? parseInt(match[1]) : null;
   };
 
-  const score = getScore();
-
   return (
     <div className="min-h-screen pt-14 flex flex-col">
       {zoomedImage && (
@@ -1549,7 +1572,7 @@ const Critique = () => {
       )}
 
       {/* Main Content - Show when critique has any content (complete or in-progress) */}
-      {(score !== null || messages.some(m => m.role === "assistant")) ? (
+      {(savedScore !== null || messages.some(m => m.role === "assistant")) ? (
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-lg mx-auto space-y-5">
 
@@ -1606,27 +1629,22 @@ const Critique = () => {
               </CardContent>
             </Card>
 
-            {/* 2. Score + One-liner Critique - shown together above 群友锐评 */}
-            {(getOneLinerCritique() || score !== null) && (
+            {/* 2. One-liner Critique - extracted from detailed critique */}
+            {savedOneLiner && (
               <Card className="bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
-                <CardContent className="pt-4 pb-4 space-y-3">
-                  {score !== null && (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gradient-gold">{score}</span>
-                      <span className="text-sm text-muted-foreground">/ 100</span>
-                      <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full ml-auto">
-                        {t("综合评分", "Overall Score")}
-                      </span>
-                    </div>
-                  )}
-                  {getOneLinerCritique() && (
-                    <div>
-                      <h3 className="text-sm font-bold text-primary mb-2">💥 {t("一句话暴击", "One-liner Roast")}</h3>
-                      <p className="text-sm text-foreground leading-relaxed">{getOneLinerCritique()}</p>
-                    </div>
-                  )}
+                <CardContent className="pt-4 pb-4">
+                  <h3 className="text-sm font-bold text-primary mb-2">💥 {t("一句话暴击", "One-liner Roast")}</h3>
+                  <p className="text-sm text-foreground leading-relaxed">{savedOneLiner}</p>
                 </CardContent>
               </Card>
+            )}
+
+            {/* 3. Score - below one-liner */}
+            {savedScore !== null && (
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-3xl font-bold text-gradient-gold">{savedScore}</span>
+                <span className="text-muted-foreground text-sm">/ 100</span>
+              </div>
             )}
 
             {/* 4. Persona Critiques */}
