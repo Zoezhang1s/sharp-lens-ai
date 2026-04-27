@@ -54,6 +54,36 @@ const detectStyleFromText = (text: string): string | undefined => {
   return undefined;
 };
 
+// Extract the savage one-liner that lives directly under "## 🔥 一句话暴击" / "## 🔥 Opening Roast".
+// Returns "" if the section header hasn't streamed in yet OR its body is still empty.
+const extractOneLinerRoast = (text: string): string => {
+  const lines = text.split("\n");
+  const headerIdx = lines.findIndex((l) => {
+    const t = l.trim();
+    if (!t.startsWith("#")) return false;
+    return t.includes("一句话暴击") || /opening\s+roast/i.test(t);
+  });
+  if (headerIdx === -1) return "";
+  // Walk forward, skip blanks, stop at the next heading or score / divider line
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    // Stop if we hit the next section before finding any body text
+    if (trimmed.startsWith("#") || trimmed.startsWith("---") || trimmed.startsWith("|")) return "";
+    // Strip markdown noise (bold, italic, leading parentheses, leading punctuation)
+    const cleaned = trimmed
+      .replace(/^>\s*/, "")
+      .replace(/\*\*/g, "")
+      .replace(/^\*+|\*+$/g, "")
+      .replace(/^[（(]/, "")
+      .replace(/[）)]$/, "")
+      .trim();
+    if (cleaned.length >= 4) return cleaned;
+  }
+  return "";
+};
+
 const buildPersonaBrief = (text: string): string => {
   return text
     .split("\n")
@@ -103,6 +133,10 @@ const Critique = () => {
   const [personasError, setPersonasError] = useState<string | null>(null);
   const [savedOneLiner, setSavedOneLiner] = useState<string>("");
   const [savedScore, setSavedScore] = useState<number | null>(null);
+  // Tracks whether we are actively generating the AI reference image in THIS session.
+  // When false AND no generatedImage in messages, we know it never produced one (e.g. historical record),
+  // so we should show a friendly empty state instead of a perpetual spinner.
+  const [imageGenAttempted, setImageGenAttempted] = useState(false);
 
   // Persona cache helpers — keyed by historyId so re-entering shows same personas
   const loadCachedPersonas = (hid: string | null): Persona[] | null => {
@@ -316,18 +350,8 @@ const Critique = () => {
           const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
           if (scoreMatch) setSavedScore(parseInt(scoreMatch[1], 10));
 
-          const lines = content.split("\n");
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
-            if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 80) {
-              const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
-              if (cleaned.length > 5) {
-                setSavedOneLiner(cleaned);
-                break;
-              }
-            }
-          }
+          const roast = extractOneLinerRoast(content);
+          if (roast) setSavedOneLiner(roast);
         }
 
         // If has assistant message with content, critique is complete - just view it
@@ -410,19 +434,7 @@ const Critique = () => {
 
       setSavedOneLiner((prevOneLiner) => {
         if (prevOneLiner) return prevOneLiner;
-        const lines = assistantSoFar.split("\n");
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
-          if (
-            (trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) &&
-            trimmed.length < 120
-          ) {
-            const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
-            if (cleaned.length > 5) return cleaned;
-          }
-        }
-        return prevOneLiner;
+        return extractOneLinerRoast(assistantSoFar) || prevOneLiner;
       });
 
       setMessages((prev) => {
@@ -660,6 +672,7 @@ const Critique = () => {
     const imagePrompt = extractImagePrompt(critiqueText);
 
     setIsGeneratingImage(true);
+    setImageGenAttempted(true);
     // 15-minute hard timeout — if the function takes longer, surface a clear error
     const controller = new AbortController();
     const FIFTEEN_MIN = 15 * 60 * 1000;
@@ -1625,10 +1638,29 @@ const Critique = () => {
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg">
+                  ) : isGeneratingImage ? (
+                    <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-4 min-h-[120px]">
                       <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" />
-                      <p className="text-xs text-muted-foreground">{t("AI参考图生成中...", "Generating AI reference...")}</p>
+                      <p className="text-xs text-muted-foreground text-center">{t("AI参考图生成中...", "Generating AI reference...")}</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-4 min-h-[120px] text-center">
+                      <Sparkles className="w-5 h-5 text-muted-foreground/60 mb-2" />
+                      <p className="text-xs text-muted-foreground">
+                        {t("此记录暂无AI参考图", "No AI reference for this record")}
+                      </p>
+                      {!isLoading && messages.some(m => m.role === "assistant" && !m.generatedImage) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
+                            if (assistantMsg) generateOptimizedImage(assistantMsg.content, messages);
+                          }}
+                          className="mt-2 text-xs text-primary hover:underline"
+                        >
+                          {t("点击生成", "Tap to generate")}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
