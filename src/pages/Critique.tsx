@@ -620,6 +620,10 @@ const Critique = () => {
     const imagePrompt = extractImagePrompt(critiqueText);
 
     setIsGeneratingImage(true);
+    // 15-minute hard timeout — if the function takes longer, surface a clear error
+    const controller = new AbortController();
+    const FIFTEEN_MIN = 15 * 60 * 1000;
+    const timeoutId = window.setTimeout(() => controller.abort(), FIFTEEN_MIN);
     try {
       const resp = await fetch(GENERATE_IMAGE_URL, {
         method: "POST",
@@ -632,13 +636,18 @@ const Critique = () => {
           imageData: refImage,
           language: lang === "zh" ? "zh" : "en",
         }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({ error: "Unknown error" }));
-        console.error("Image gen error:", data.error);
+        const data = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+        const serverErr = (data?.error || `HTTP ${resp.status}`).toString();
+        console.error("Image gen error:", serverErr);
         toast.error(
-          t("参考图生成失败，请重试", "Failed to generate the reference image. Please try again.")
+          t(
+            `参考图生成失败：${serverErr}`,
+            `Failed to generate reference image: ${serverErr}`
+          )
         );
         return;
       }
@@ -654,10 +663,29 @@ const Critique = () => {
           generatedImage: data.imageUrl,
         };
         setMessages((prev) => [...prev, imgMsg]);
+      } else {
+        toast.error(
+          t("参考图生成失败：服务器未返回图片", "Failed to generate reference image: server returned no image")
+        );
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Image gen error:", e);
+      const isAbort = e?.name === "AbortError";
+      if (isAbort) {
+        toast.error(
+          t(
+            "参考图生成超时（超过 15 分钟）。可能原因：手机网络不稳定 / AI 服务排队过长，请切换到 WiFi 后重试。",
+            "Reference image generation timed out (over 15 min). Likely cause: unstable mobile network or AI service queue. Switch to Wi-Fi and retry."
+          )
+        );
+      } else {
+        const msg = e?.message || (lang === "zh" ? "网络异常" : "Network error");
+        toast.error(
+          t(`参考图生成失败：${msg}`, `Failed to generate reference image: ${msg}`)
+        );
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsGeneratingImage(false);
     }
   };
