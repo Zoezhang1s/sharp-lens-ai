@@ -399,31 +399,34 @@ const Critique = () => {
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
       const detectedStyleId = detectStyleFromText(assistantSoFar);
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        const isNew = last?.role !== "assistant" || last?.generatedImage;
 
-        if (isNew) {
-          // First chunk - extract and save one-liner and score
-          const scoreMatch = assistantSoFar.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
-          const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
-          if (score !== null) setSavedScore(score);
+      // Continuously try to extract score and one-liner as content streams in.
+      // (Previously this only ran on the first chunk, which never contained the data.)
+      const scoreMatch = assistantSoFar.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+      if (scoreMatch) {
+        const score = parseInt(scoreMatch[1], 10);
+        setSavedScore((prev) => (prev === null ? score : prev));
+      }
 
-          // Extract one-liner
-          const lines = assistantSoFar.split("\n");
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
-            if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 80) {
-              const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
-              if (cleaned.length > 5) {
-                setSavedOneLiner(cleaned);
-                break;
-              }
-            }
+      setSavedOneLiner((prevOneLiner) => {
+        if (prevOneLiner) return prevOneLiner;
+        const lines = assistantSoFar.split("\n");
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
+          if (
+            (trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) &&
+            trimmed.length < 120
+          ) {
+            const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+            if (cleaned.length > 5) return cleaned;
           }
         }
+        return prevOneLiner;
+      });
 
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
         if (last?.role === "assistant" && !last.generatedImage) {
           return prev.map((m, i) =>
             i === prev.length - 1 ? { ...m, content: assistantSoFar, detectedStyleId } : m
@@ -432,6 +435,7 @@ const Critique = () => {
         return [...prev, { role: "assistant", content: assistantSoFar, detectedStyleId }];
       });
     };
+
 
     try {
       const apiMsgs = buildApiMessages(currentMessages);
