@@ -336,7 +336,18 @@ const Critique = () => {
         // Get original image from messages first, fallback to compressed thumbnail
         const userMsgWithImage = (record.messages as Message[]).find((m: any) => m.role === "user" && m.imageData);
         setImageData(userMsgWithImage?.imageData || record.imageData);
-        setMessages(record.messages as Message[]);
+        const restoredMessages = record.messages as Message[];
+        setMessages(restoredMessages);
+        restoredMessages.forEach((msg, idx) => {
+          if (msg.generatedImageKey && !msg.generatedImage) {
+            loadGeneratedImage(msg.generatedImageKey).then((storedImage) => {
+              if (!storedImage) return;
+              setMessages((prev) => prev.map((m, i) =>
+                i === idx ? { ...m, generatedImage: storedImage } : m
+              ));
+            }).catch((err) => console.warn("Failed to restore generated image", err));
+          }
+        });
         // Show simplified view when entering from history
         setFromHistory(true);
 
