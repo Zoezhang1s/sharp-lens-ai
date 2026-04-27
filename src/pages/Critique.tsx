@@ -1450,18 +1450,29 @@ const Critique = () => {
         )
       );
 
+      const isMobile = typeof navigator !== "undefined" &&
+        /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
       const canvas = await html2canvas(captureDiv, {
         backgroundColor: "#0a0a0f",
-        scale: 2,
+        // Mobile devices: lower scale dramatically reduces file size + memory + download time
+        scale: isMobile ? 1.2 : 2,
         useCORS: true,
         allowTaint: true,
       });
 
       document.body.removeChild(captureDiv);
 
+      // Use JPEG on mobile for ~5-10x smaller files (much faster download/save)
+      const mime = isMobile ? "image/jpeg" : "image/png";
+      const ext = isMobile ? "jpg" : "png";
+      const dataUrl = isMobile
+        ? canvas.toDataURL(mime, 0.85)
+        : canvas.toDataURL(mime);
+
       const link = document.createElement("a");
-      link.download = `critique-${Date.now()}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = `critique-${Date.now()}.${ext}`;
+      link.href = dataUrl;
       link.click();
 
       toast.success(t("图片已下载", "Image downloaded"));
