@@ -753,6 +753,18 @@ const Critique = () => {
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
       const detectedStyleId = detectStyleFromText(assistantSoFar);
+
+      // Continuously try to extract score and one-liner roast as content streams in.
+      const scoreMatch = assistantSoFar.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
+      if (scoreMatch) {
+        const score = parseInt(scoreMatch[1], 10);
+        setSavedScore((prev) => (prev === null ? score : prev));
+      }
+      setSavedOneLiner((prevOneLiner) => {
+        if (prevOneLiner) return prevOneLiner;
+        return extractOneLinerRoast(assistantSoFar) || prevOneLiner;
+      });
+
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant" && !last.generatedImage) {
