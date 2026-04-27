@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
 import { STYLE_DATA, STYLE_NAME_MAP } from "@/data/styleData";
-import { useHistory, extractScoreFromText, generateTitle } from "@/hooks/useHistory";
+import { useHistory, extractScoreFromText, generateTitle, loadGeneratedImage, saveGeneratedImage } from "@/hooks/useHistory";
 
 interface Persona {
   name: string;
@@ -22,6 +22,7 @@ interface Message {
   content: string;
   imageData?: string;
   generatedImage?: string;
+  generatedImageKey?: string;
   detectedStyleId?: string;
 }
 
@@ -335,7 +336,18 @@ const Critique = () => {
         // Get original image from messages first, fallback to compressed thumbnail
         const userMsgWithImage = (record.messages as Message[]).find((m: any) => m.role === "user" && m.imageData);
         setImageData(userMsgWithImage?.imageData || record.imageData);
-        setMessages(record.messages as Message[]);
+        const restoredMessages = record.messages as Message[];
+        setMessages(restoredMessages);
+        restoredMessages.forEach((msg, idx) => {
+          if (msg.generatedImageKey && !msg.generatedImage) {
+            loadGeneratedImage(msg.generatedImageKey).then((storedImage) => {
+              if (!storedImage) return;
+              setMessages((prev) => prev.map((m, i) =>
+                i === idx ? { ...m, generatedImage: storedImage } : m
+              ));
+            }).catch((err) => console.warn("Failed to restore generated image", err));
+          }
+        });
         // Show simplified view when entering from history
         setFromHistory(true);
 
@@ -707,6 +719,12 @@ const Critique = () => {
 
       const data = await resp.json();
       if (data.imageUrl) {
+        const imageKey = historyId ? `${historyId}:ai-reference` : `ai-reference:${crypto.randomUUID()}`;
+        let persistedImageKey: string | undefined = imageKey;
+        await saveGeneratedImage(imageKey, data.imageUrl).catch((err) => {
+          persistedImageKey = undefined;
+          console.warn("Failed to persist generated image", err);
+        });
         const imgMsg: Message = {
           role: "assistant",
           content: t(
@@ -714,6 +732,7 @@ const Critique = () => {
             "## 🎨 AI Optimized Reference\n\nBased on key suggestions:\n\n> 💡 *AI reference — adjust based on actual conditions*"
           ),
           generatedImage: data.imageUrl,
+          generatedImageKey: persistedImageKey,
         };
         setMessages((prev) => [...prev, imgMsg]);
       } else {

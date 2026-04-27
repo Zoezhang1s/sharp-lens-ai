@@ -7,13 +7,55 @@ export interface HistoryRecord {
   title: string;
   score: number;
   timestamp: number;
-  messages: Array<{ role: string; content: string; imageData?: string; generatedImage?: string; detectedStyleId?: string }>;
+  messages: Array<{ role: string; content: string; imageData?: string; generatedImage?: string; generatedImageKey?: string; detectedStyleId?: string }>;
   titleLocked?: boolean; // once AI title is set, never overwrite
 }
 
 const STORAGE_KEY = "photo-critique-history";
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const MAX_THUMB_SIZE = 150;
+const IMAGE_DB_NAME = "photo-critique-images";
+const IMAGE_DB_STORE = "images";
+
+function openImageDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB is not available"));
+      return;
+    }
+    const req = indexedDB.open(IMAGE_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(IMAGE_DB_STORE)) {
+        req.result.createObjectStore(IMAGE_DB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error("Failed to open image DB"));
+  });
+}
+
+export async function saveGeneratedImage(key: string, dataUrl: string): Promise<void> {
+  const db = await openImageDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(IMAGE_DB_STORE, "readwrite");
+    tx.objectStore(IMAGE_DB_STORE).put(dataUrl, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("Failed to save generated image"));
+  });
+  db.close();
+}
+
+export async function loadGeneratedImage(key: string): Promise<string | null> {
+  const db = await openImageDb();
+  const result = await new Promise<string | null>((resolve, reject) => {
+    const tx = db.transaction(IMAGE_DB_STORE, "readonly");
+    const req = tx.objectStore(IMAGE_DB_STORE).get(key);
+    req.onsuccess = () => resolve(typeof req.result === "string" ? req.result : null);
+    req.onerror = () => reject(req.error || new Error("Failed to load generated image"));
+  });
+  db.close();
+  return result;
+}
 
 function compressImage(base64: string): Promise<string> {
   return new Promise((resolve) => {
@@ -40,7 +82,10 @@ function lightenForStorage(records: HistoryRecord[]): any[] {
       content: m.content,
       imageData: m.imageData,
       detectedStyleId: m.detectedStyleId,
-      generatedImage: m.generatedImage, // KEEP — needed to avoid regenerating from history
+      generatedImageKey: m.generatedImageKey,
+      // Keep legacy/small generated images only when no IndexedDB key exists.
+      // New generated AI images are large data URLs and live in IndexedDB, so localStorage won't hit quota.
+      generatedImage: m.generatedImageKey ? undefined : m.generatedImage,
     })),
   }));
 }
