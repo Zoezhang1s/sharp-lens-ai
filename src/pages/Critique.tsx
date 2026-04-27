@@ -720,7 +720,9 @@ const Critique = () => {
       const data = await resp.json();
       if (data.imageUrl) {
         const imageKey = historyId ? `${historyId}:ai-reference` : `ai-reference:${crypto.randomUUID()}`;
+        let persistedImageKey: string | undefined = imageKey;
         await saveGeneratedImage(imageKey, data.imageUrl).catch((err) => {
+          persistedImageKey = undefined;
           console.warn("Failed to persist generated image", err);
         });
         const imgMsg: Message = {
@@ -730,7 +732,7 @@ const Critique = () => {
             "## 🎨 AI Optimized Reference\n\nBased on key suggestions:\n\n> 💡 *AI reference — adjust based on actual conditions*"
           ),
           generatedImage: data.imageUrl,
-          generatedImageKey: imageKey,
+          generatedImageKey: persistedImageKey,
         };
         setMessages((prev) => [...prev, imgMsg]);
       } else {
