@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { streamChat, type Msg } from "@/lib/streamChat";
 import { toast } from "sonner";
+import { loadGeneratedImage } from "@/hooks/useHistory";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   imageData?: string;
   generatedImage?: string;
+  generatedImageKey?: string;
 }
 
 interface CritiqueData {
@@ -106,7 +108,18 @@ const DetailedCritique = () => {
       const record = records.find((r: any) => r.id === id);
       if (record) {
         setCritiqueData(record);
-        setMessages(record.messages || []);
+        const restoredMessages = (record.messages || []) as Message[];
+        setMessages(restoredMessages);
+        restoredMessages.forEach((msg, idx) => {
+          if (msg.generatedImageKey && !msg.generatedImage) {
+            loadGeneratedImage(msg.generatedImageKey).then((storedImage) => {
+              if (!storedImage) return;
+              setMessages((prev) => prev.map((m, i) =>
+                i === idx ? { ...m, generatedImage: storedImage } : m
+              ));
+            }).catch((err) => console.warn("Failed to restore generated image", err));
+          }
+        });
       } else {
         toast.error(t("未找到该点评记录", "Critique record not found"));
         navigate("/history");
