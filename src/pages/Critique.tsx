@@ -133,6 +133,10 @@ const Critique = () => {
   const [personasError, setPersonasError] = useState<string | null>(null);
   const [savedOneLiner, setSavedOneLiner] = useState<string>("");
   const [savedScore, setSavedScore] = useState<number | null>(null);
+  // Tracks whether we are actively generating the AI reference image in THIS session.
+  // When false AND no generatedImage in messages, we know it never produced one (e.g. historical record),
+  // so we should show a friendly empty state instead of a perpetual spinner.
+  const [imageGenAttempted, setImageGenAttempted] = useState(false);
 
   // Persona cache helpers — keyed by historyId so re-entering shows same personas
   const loadCachedPersonas = (hid: string | null): Persona[] | null => {
