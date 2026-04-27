@@ -471,9 +471,14 @@ const Critique = () => {
       const score = extractScoreFromText(assistantMsgs.map(m => m.content).join("\n"));
       const summary = lastAssistant.replace(/[#*>\n]/g, " ").trim().slice(0, 100);
 
-      // Don't overwrite the AI-generated title once it's set
+      // Don't overwrite the AI-generated title once it's locked (persists across reloads)
+      const existing = getRecord(historyId);
+      const isTitleLocked =
+        existing?.titleLocked === true ||
+        titleDoneForHistoryRef.current === historyId;
+
       const updates: any = { messages, score, summary };
-      if (titleDoneForHistoryRef.current !== historyId) {
+      if (!isTitleLocked) {
         updates.title = generateTitle(lastAssistant, lang);
       }
       updateRecord(historyId, updates);
@@ -483,7 +488,7 @@ const Critique = () => {
         !isLoading &&
         lastAssistant &&
         score > 0 &&
-        titleDoneForHistoryRef.current !== historyId &&
+        !isTitleLocked &&
         !titleFetchingRef.current
       ) {
         fetchAITitle(lastAssistant, imageData, historyId);
