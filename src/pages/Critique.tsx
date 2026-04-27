@@ -434,19 +434,7 @@ const Critique = () => {
 
       setSavedOneLiner((prevOneLiner) => {
         if (prevOneLiner) return prevOneLiner;
-        const lines = assistantSoFar.split("\n");
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
-          if (
-            (trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) &&
-            trimmed.length < 120
-          ) {
-            const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
-            if (cleaned.length > 5) return cleaned;
-          }
-        }
-        return prevOneLiner;
+        return extractOneLinerRoast(assistantSoFar) || prevOneLiner;
       });
 
       setMessages((prev) => {
