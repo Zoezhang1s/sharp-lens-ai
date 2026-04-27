@@ -11,7 +11,6 @@ import { useHistory, extractScoreFromText, generateTitle } from "@/hooks/useHist
 
 interface Persona {
   name: string;
-  avatar: string;
   style: string;
   critique: string;
   translation?: string; // Chinese translation for foreign personas
@@ -27,17 +26,57 @@ interface Message {
 }
 
 const GENERATE_IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
+const PERSONAS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/personas`;
+const TITLE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/title`;
+const PERSONAS_CACHE_KEY = "photo-critique-personas-cache";
 
 const detectStyleFromText = (text: string): string | undefined => {
-  for (const style of STYLE_DATA) {
-    if (text.includes(style.nameZh) || text.toLowerCase().includes(style.nameEn.toLowerCase())) {
-      return style.id;
+  // Prefer the "encyclopedia match" line — that's the one guaranteed to be from STYLE_DATA
+  const lines = text.split("\n");
+  const encyclopediaLine = lines.find(
+    (l) =>
+      l.includes("风格百科推荐") ||
+      l.includes("Encyclopedia Match") ||
+      l.includes("百科推荐")
+  );
+  const searchPool = [encyclopediaLine, text].filter(Boolean) as string[];
+
+  for (const pool of searchPool) {
+    for (const style of STYLE_DATA) {
+      if (pool.includes(style.nameZh) || pool.toLowerCase().includes(style.nameEn.toLowerCase())) {
+        return style.id;
+      }
+    }
+    for (const [name, id] of Object.entries(STYLE_NAME_MAP)) {
+      if (pool.includes(name)) return id;
     }
   }
-  for (const [name, id] of Object.entries(STYLE_NAME_MAP)) {
-    if (text.includes(name)) return id;
-  }
   return undefined;
+};
+
+const buildPersonaBrief = (text: string): string => {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("|") && !line.startsWith("---") && line !== "&nbsp;")
+    .slice(0, 16)
+    .join("\n")
+    .slice(0, 1600);
+};
+
+const getLanguageBadgeClass = (langCode?: string) => {
+  switch ((langCode || "zh").toLowerCase()) {
+    case "en":
+      return "bg-primary/10 text-primary border border-primary/20";
+    case "ja":
+      return "bg-accent text-accent-foreground border border-border/50";
+    case "ko":
+      return "bg-secondary text-secondary-foreground border border-border/50";
+    case "fr":
+      return "bg-muted text-muted-foreground border border-border/50";
+    default:
+      return "bg-primary/10 text-primary border border-primary/20";
+  }
 };
 
 const Critique = () => {
@@ -55,161 +94,200 @@ const Critique = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [, setFromHistory] = useState(false);
   const critiqueStartedRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const critiqueContentRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addRecord, updateRecord, getRecord } = useHistory();
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [savedOneLiner, setSavedOneLiner] = useState<string>("");
   const [savedScore, setSavedScore] = useState<number | null>(null);
 
-  // Generate dynamic personas based on critique theme
-  const generateDynamicPersonas = (critiqueText: string): Persona[] => {
-    const text = critiqueText.toLowerCase();
-
-    // All persona pools - each with DISTINCT perspective and sharp critique style
-    const allPersonas: Persona[] = [
-      // === 摄影专业人士 - 技术派 ===
-      { name: "陈漫", avatar: "", style: "时尚摄影师", critique: "光打偏了。侧光还是逆光要先想清楚，主光要在模特30-45度角，轮廓光才立体。", lang: "zh" },
-      { name: "张艺谋", avatar: "", style: "电影导演", critique: "色彩没有主调。红是红绿是绿，互相打架。定一个氛围色，所有颜色往那边靠。", lang: "zh" },
-      { name: "Annie Leibovitz", avatar: "", style: "人像大师", critique: "Stiff. Get them moving, laughing, then shoot in bursts. The best portraits happen when people forget the camera.", translation: "太僵硬了。让他们动起来、笑，然后连拍。最好的肖像发生在人们忘记相机的时候。", lang: "en" },
-      { name: "森山大道", avatar: "", style: "街头摄影", critique: "街拍要等。等那个人走到光里，等自行车骑过，等影子拉长。你的照片全是抓拍，没有预判。", lang: "zh" },
-      { name: "荒木经惟", avatar: "", style: "日本摄影大师", critique: "被写体を愛してない。撮影前に5分会話しろ。空気が変わると、写りも変わる。", translation: "没有爱被摄体。拍摄前先聊5分钟。空气变了，拍出来也会变。", lang: "ja" },
-
-      // === 搞笑反差 - 毒舌但有道理 ===
-      { name: "旺财", avatar: "", style: "吃货狗", critique: "这pose僵得跟我被带去宠物店拍照一样！放松，歪头，看镜头——三连，你照做我看看。", lang: "zh" },
-      { name: "米奇妙妙屋", avatar: "", style: "IQ50侦探", critique: "嘿嘿...这张照片构图的问题在于——主体不够突出。就像我永远找不到我的 cheese 一样！", lang: "zh" },
-      { name: "蜡笔小新", avatar: "", style: "5岁灵魂", critique: "妈妈说动起来拍才自然！你站那么直干嘛～跑来跑去的时候让爸爸妈妈连拍！", lang: "zh" },
-      { name: "海绵宝宝", avatar: "", style: "乐观天才", critique: "我准备好了！我准备好了！——你拍照的时机不对，要在最好玩的那一秒按下去！", lang: "zh" },
-
-      // === 科学家/学者 - 理性分析派 ===
-      { name: "爱因斯坦", avatar: "", style: "理论物理学家", critique: "E=mc²，但好照片 = 构图 + 光线 + 时机。你的公式缺了两项。", lang: "zh" },
-      { name: "达尔文", avatar: "", style: "生物学家", critique: "适者生存，强者曝光。你这张不是过度曝光就是死黑，自然光用不好就找个窗边。", lang: "zh" },
-      { name: "霍金", avatar: "", style: "天体物理学家", critique: "The universe is dark. Your photo is also dark. Coincidence? I think not.", translation: "宇宙是黑的。你的照片也黑。这是巧合吗？我不这么认为。", lang: "en" },
-
-      // === 艺术家/作家 - 感觉派 ===
-      { name: "梵高", avatar: "", style: "后印象派", critique: "星空有星月，夜景要有灯光层次！你这黑成一坨，像我割耳朵那天的心情。去找个光源。", lang: "zh" },
-      { name: "鲁迅", avatar: "", style: "文学巨匠", critique: "我向来不轻易褒贬。但这张——进步空间的确很大。多拍，多看，少滤镜。", lang: "zh" },
-      { name: "宫崎骏", avatar: "", style: "动画大师", critique: "この写真には生命がない。風の音、葉の揺れ、光の粒——それを感じられる瞬間を待て。", translation: "这张照片没有生命。风的声响、树叶的摇曳、光的颗粒——等待能感受到那些的瞬间。", lang: "ja" },
-
-      // === 商业大佬 - 结果派 ===
-      { name: "马斯克", avatar: "", style: "SpaceX CEO", critique: "Failed launch. If this were a rocket, we'd say 'needs improvement.' Actually, just delete and retake.", translation: "发射失败。如果这是火箭，我们会说'需要改进'。其实，删了重拍吧。", lang: "en" },
-      { name: "马云", avatar: "", style: "商业导师", critique: "格局小了。拍照也是一样，要有人无我有、人有我精的意识。你的照片太普通了。", lang: "zh" },
-      { name: "何炅", avatar: "", style: "主持人", critique: "拍照要有观众视角。你这张，焦点乱飘，表情僵硬——先让被拍的人放松下来。", lang: "zh" },
-
-      // === 网红博主 - 内容派 ===
-      { name: "李子柒", avatar: "", style: "田园生活家", critique: "你这照片没有'味道'。好的照片能让人闻到香气、听到虫鸣。先想想你要传达什么情绪。", lang: "zh" },
-      { name: "papi酱", avatar: "", style: "短视频博主", critique: "信息密度太低了！3秒内讲不完一个故事的画面，不是好画面。", lang: "zh" },
-
-      // === 美食专家 ===
-      { name: "孤独的美食家", avatar: "", style: "五郎大叔", critique: "热气！热气没了！食物摄影第一法则：趁热拍。凉了之后光泽感全失。", lang: "zh" },
-      { name: "小当家", avatar: "", style: "中华小当家", critique: "这道菜发光的部分呢？！油光、水汽、高光——美食照没有这三样，就是一碗剩饭。", lang: "zh" },
-
-      // === 宠物专家 ===
-      { name: "忠犬八公", avatar: "", style: "狗界标杆", critique: "眼睛！焦点要对在眼睛上！狗子眼神光没有，整张照片就失去了灵魂。", lang: "zh" },
-      { name: "橘猫", avatar: "", style: "资深猫奴", critique: "等猫看镜头的那一秒再拍。其他时候按的都是废片。相信我，我每天都这样被拍。", lang: "zh" },
-    ];
-
-    // Detect themes
-    const isPortrait = text.includes("人像") || text.includes("肖像") || text.includes("自拍");
-    const isStreet = text.includes("街头") || text.includes("街拍");
-    const isNight = text.includes("夜景") || text.includes("夜晚");
-    const isFood = text.includes("美食") || text.includes("食物");
-    const isPet = text.includes("宠物") || text.includes("猫") || text.includes("狗");
-    const isKid = text.includes("儿童") || text.includes("小孩");
-    const isNature = text.includes("森林") || text.includes("海边") || text.includes("沙滩");
-    const isTravel = text.includes("旅行") || text.includes("风景");
-    const isIndoor = text.includes("室内") || text.includes("家居");
-
-    // Theme-specific boost
-    let pool = [...allPersonas];
-    if (isPortrait || isStreet) {
-      // Prioritize portrait/street photographers
-      pool = pool.sort((a, b) => {
-        const portraitBoost = (name: string) =>
-          ["陈漫", "Annie Leibovitz", "森山大道", "张艺谋", "荒木经惟", "旺财", "蜡笔小新", "五条悟"].includes(name) ? -1 : 1;
-        return portraitBoost(a.name) - portraitBoost(b.name);
-      });
-    } else if (isNature || isTravel) {
-      pool = pool.sort((a, b) => {
-        const natureBoost = (name: string) =>
-          ["丁真", "李子柒", "徐霞客", "宫崎骏", "梵高"].includes(name) ? -1 : 1;
-        return natureBoost(a.name) - natureBoost(b.name);
-      });
-    } else if (isFood) {
-      pool = pool.sort((a, b) => {
-        const foodBoost = (name: string) =>
-          ["孤独的美食家", "悟里", "小当家"].includes(name) ? -1 : 1;
-        return foodBoost(a.name) - foodBoost(b.name);
-      });
-    } else if (isPet) {
-      pool = pool.sort((a, b) => {
-        const petBoost = (name: string) =>
-          ["旺财", "喵星人", "韩寒"].includes(name) ? -1 : 1;
-        return petBoost(a.name) - petBoost(b.name);
-      });
+  // Persona cache helpers — keyed by historyId so re-entering shows same personas
+  const loadCachedPersonas = (hid: string | null): Persona[] | null => {
+    if (!hid) return null;
+    try {
+      const raw = localStorage.getItem(PERSONAS_CACHE_KEY);
+      if (!raw) return null;
+      const cache = JSON.parse(raw);
+      return cache[hid] || null;
+    } catch {
+      return null;
     }
-
-    // Pick 5 personas ensuring diversity:
-    // - 2 photography professionals (Chinese)
-    // - 1 funny character (anime/meme style)
-    // - 1 scientist or artist
-    // - 1 business/influencer personality
-    // Non-Chinese must have Chinese translations
-    const shuffled = pool.sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, 10);
-
-    const result: Persona[] = [];
-    const usedNames = new Set<string>();
-
-    // Helper categories
-    const professionals = ["陈漫", "张艺谋", "森山大道", "荒木经惟"];
-    const funnyChars = ["旺财", "米奇妙妙屋", "蜡笔小新", "海绵宝宝"];
-    const scientists = ["爱因斯坦", "达尔文", "霍金"];
-    const artists = ["梵高", "鲁迅", "宫崎骏"];
-    const business = ["马斯克", "马云", "何炅", "李子柒", "papi酱"];
-    const foodPets = ["孤独的美食家", "小当家", "忠犬八公", "橘猫"];
-
-    const pickFrom = (names: string[]) => {
-      for (const name of names) {
-        if (result.length >= 5) break;
-        const p = picked.find(p => p.name === name);
-        if (p && !usedNames.has(p.name)) {
-          result.push(p);
-          usedNames.add(p.name);
-        }
-      }
-    };
-
-    // Order: pros -> funny -> scientists/artists -> business
-    pickFrom(professionals);
-    pickFrom(funnyChars);
-    pickFrom([...scientists, ...artists]);
-    pickFrom([...business, ...foodPets]);
-
-    // If not enough, fill from remaining
-    if (result.length < 5) {
-      for (const p of picked) {
-        if (result.length >= 5) break;
-        if (!usedNames.has(p.name)) {
-          result.push(p);
-          usedNames.add(p.name);
-        }
-      }
-    }
-
-    return result.slice(0, 5);
   };
 
-  // Update personas when critique is ready
-  useEffect(() => {
-    if (messages.some(m => m.role === "assistant" && !m.generatedImage)) {
-      const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
-      if (assistantMsg && personas.length === 0) {
-        setPersonas(generateDynamicPersonas(assistantMsg.content));
+  const saveCachedPersonas = (hid: string | null, list: Persona[]) => {
+    if (!hid) return;
+    try {
+      const raw = localStorage.getItem(PERSONAS_CACHE_KEY);
+      const cache = raw ? JSON.parse(raw) : {};
+      cache[hid] = list;
+      const keys = Object.keys(cache);
+      if (keys.length > 50) {
+        const trimmed: Record<string, Persona[]> = {};
+        keys.slice(-50).forEach((k) => { trimmed[k] = cache[k]; });
+        localStorage.setItem(PERSONAS_CACHE_KEY, JSON.stringify(trimmed));
+      } else {
+        localStorage.setItem(PERSONAS_CACHE_KEY, JSON.stringify(cache));
       }
+    } catch {
+      // ignore
     }
-  }, [messages, personas.length]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const critiqueContentRef = useRef<HTMLDivElement>(null);
-  const { addRecord, updateRecord, getRecord } = useHistory();
+  };
+
+  const personasFetchingRef = useRef(false);
+  const titleFetchingRef = useRef(false);
+  const titleDoneForHistoryRef = useRef<string | null>(null);
+
+  // Generate a witty, specific AI title and update the history record
+  const fetchAITitle = async (critiqueText: string, refImage: string | null, hid: string | null) => {
+    if (!hid) return;
+    if (titleFetchingRef.current) return;
+    if (titleDoneForHistoryRef.current === hid) return;
+    titleFetchingRef.current = true;
+    try {
+      const { downscaleImage } = await import("@/lib/imageUtils");
+      const brief = buildPersonaBrief(critiqueText);
+      const smallImage = refImage ? await downscaleImage(refImage, 768, 0.72) : null;
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 20000);
+      let resp: Response;
+      try {
+        resp = await fetch(TITLE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: smallImage,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
+
+      if (!resp.ok) {
+        console.warn("Title fetch failed", resp.status);
+        return;
+      }
+      const data = await resp.json();
+      const aiTitle = (data?.title || "").toString().trim();
+      if (aiTitle) {
+        updateRecord(hid, { title: aiTitle, titleLocked: true });
+        titleDoneForHistoryRef.current = hid;
+      }
+    } catch (e) {
+      console.warn("Title fetch exception", e);
+    } finally {
+      titleFetchingRef.current = false;
+    }
+  };
+
+
+  // Fetch dynamic, photo-aware personas from the edge function
+  const fetchPersonas = async (critiqueText: string, refImage: string | null) => {
+    if (personasFetchingRef.current) return;
+    personasFetchingRef.current = true;
+    setIsLoadingPersonas(true);
+    setPersonasError(null);
+    try {
+      const { downscaleImage } = await import("@/lib/imageUtils");
+      const brief = buildPersonaBrief(critiqueText);
+      const smallImage = refImage ? await downscaleImage(refImage, 768, 0.72) : null;
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 25000);
+      let resp: Response;
+
+      try {
+        resp = await fetch(PERSONAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: smallImage,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+          signal: controller.signal,
+        });
+      } catch (firstError) {
+        resp = await fetch(PERSONAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            critique: brief,
+            imageData: null,
+            language: lang === "zh" ? "zh" : "en",
+          }),
+        });
+        console.warn("Personas retry without image", firstError);
+      } finally {
+        window.clearTimeout(timeout);
+      }
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        console.error("Personas fetch failed", resp.status, errText);
+        setPersonasError(t("群友锐评掉线了，请稍后再试", "Group critique is temporarily unavailable"));
+        return;
+      }
+
+      const data = await resp.json();
+      const list: Persona[] = (data.personas || []).map((p: any) => ({
+        name: p.name || "",
+        style: p.style || "",
+        critique: p.critique || "",
+        translation: p.translation || undefined,
+        lang: p.lang || "zh",
+      }));
+
+      if (list.length > 0) {
+        setPersonas(list);
+        saveCachedPersonas(historyId, list);
+      } else {
+        setPersonasError(t("群友今天嘴替失踪了", "Group critique came back empty"));
+      }
+    } catch (e) {
+      console.error("Personas error", e);
+      setPersonasError(t("群友锐评生成失败，请重试", "Failed to generate group critique"));
+    } finally {
+      personasFetchingRef.current = false;
+      setIsLoadingPersonas(false);
+    }
+  };
+
+  // When critique is ready, load cached personas or generate fresh ones
+  useEffect(() => {
+    if (personas.length > 0) return;
+    const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
+    if (!assistantMsg || !assistantMsg.content || assistantMsg.content.length < 80) return;
+    // Try cache first (so re-entering history shows the same personas)
+    const cached = loadCachedPersonas(historyId);
+    if (cached && cached.length > 0) {
+      setPersonas(cached);
+      setPersonasError(null);
+      return;
+    }
+    // Wait until streaming has likely finished before fetching
+    if (isLoading) return;
+    const refImage =
+      [...messages].reverse().find((m) => m.role === "user" && m.imageData)?.imageData ||
+      imageData ||
+      null;
+    fetchPersonas(assistantMsg.content, refImage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, historyId, isLoading]);
+
 
   useEffect(() => {
     // Check if restoring from history
@@ -257,12 +335,15 @@ const Critique = () => {
           // No assistant response - need to start critique
           const userMsg = record.messages.find((m: any) => m.role === "user");
           if (userMsg) {
+            critiqueStartedRef.current = false; // allow trigger
             setIsLoading(true);
             setTimeout(() => {
               triggerCritiqueWithRetry([userMsg as Message], true);
             }, 100);
           }
         }
+        // Otherwise: keep what we already have (text-only or text+image),
+        // do NOT re-run the critique and do NOT regenerate the image.
 
         // Auto-expand detailed view if expanded=true in URL
         if (searchParams.get("expanded") === "true") {
@@ -364,6 +445,10 @@ const Critique = () => {
           if (shouldGenerateImage && assistantSoFar) {
             generateOptimizedImage(assistantSoFar, currentMessages);
           }
+          // Generate a witty AI-powered history title (fire-and-forget)
+          if (assistantSoFar && historyId) {
+            fetchAITitle(assistantSoFar, imageData, historyId);
+          }
         },
         onError: (err) => {
           console.error("[Critique] API error:", err, "retryCount:", retryCount);
@@ -423,13 +508,32 @@ const Critique = () => {
       const assistantMsgs = messages.filter(m => m.role === "assistant" && !m.generatedImage);
       const lastAssistant = assistantMsgs[assistantMsgs.length - 1]?.content || "";
       const score = extractScoreFromText(assistantMsgs.map(m => m.content).join("\n"));
-      const title = generateTitle(lastAssistant, lang);
       const summary = lastAssistant.replace(/[#*>\n]/g, " ").trim().slice(0, 100);
 
-      // Always update the existing record
-      updateRecord(historyId, { messages, score, title, summary });
+      // Don't overwrite the AI-generated title once it's locked (persists across reloads)
+      const existing = getRecord(historyId);
+      const isTitleLocked =
+        existing?.titleLocked === true ||
+        titleDoneForHistoryRef.current === historyId;
+
+      const updates: any = { messages, score, summary };
+      if (!isTitleLocked) {
+        updates.title = generateTitle(lastAssistant, lang);
+      }
+      updateRecord(historyId, updates);
+
+      // Trigger AI title once the critique looks complete (has score + multiple sections)
+      if (
+        !isLoading &&
+        lastAssistant &&
+        score > 0 &&
+        !isTitleLocked &&
+        !titleFetchingRef.current
+      ) {
+        fetchAITitle(lastAssistant, imageData, historyId);
+      }
     }, 1000);
-  }, [messages, historyId]);
+  }, [messages, historyId, isLoading]);
 
   // Persist in-progress critique to sessionStorage for recovery
   useEffect(() => {
@@ -550,6 +654,10 @@ const Critique = () => {
     const imagePrompt = extractImagePrompt(critiqueText);
 
     setIsGeneratingImage(true);
+    // 15-minute hard timeout — if the function takes longer, surface a clear error
+    const controller = new AbortController();
+    const FIFTEEN_MIN = 15 * 60 * 1000;
+    const timeoutId = window.setTimeout(() => controller.abort(), FIFTEEN_MIN);
     try {
       const resp = await fetch(GENERATE_IMAGE_URL, {
         method: "POST",
@@ -562,13 +670,18 @@ const Critique = () => {
           imageData: refImage,
           language: lang === "zh" ? "zh" : "en",
         }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({ error: "Unknown error" }));
-        console.error("Image gen error:", data.error);
+        const data = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+        const serverErr = (data?.error || `HTTP ${resp.status}`).toString();
+        console.error("Image gen error:", serverErr);
         toast.error(
-          t("参考图生成失败，请重试", "Failed to generate the reference image. Please try again.")
+          t(
+            `参考图生成失败：${serverErr}`,
+            `Failed to generate reference image: ${serverErr}`
+          )
         );
         return;
       }
@@ -584,10 +697,29 @@ const Critique = () => {
           generatedImage: data.imageUrl,
         };
         setMessages((prev) => [...prev, imgMsg]);
+      } else {
+        toast.error(
+          t("参考图生成失败：服务器未返回图片", "Failed to generate reference image: server returned no image")
+        );
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Image gen error:", e);
+      const isAbort = e?.name === "AbortError";
+      if (isAbort) {
+        toast.error(
+          t(
+            "参考图生成超时（超过 15 分钟）。可能原因：手机网络不稳定 / AI 服务排队过长，请切换到 WiFi 后重试。",
+            "Reference image generation timed out (over 15 min). Likely cause: unstable mobile network or AI service queue. Switch to Wi-Fi and retry."
+          )
+        );
+      } else {
+        const msg = e?.message || (lang === "zh" ? "网络异常" : "Network error");
+        toast.error(
+          t(`参考图生成失败：${msg}`, `Failed to generate reference image: ${msg}`)
+        );
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsGeneratingImage(false);
     }
   };
@@ -782,69 +914,50 @@ const Critique = () => {
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, "\"")
       .replace(/&#39;/g, "'")
-      .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold markers
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "|||LINK|||$1|||URL|||$2|||ENDLINK|||");
+      .replace(/\*\*(.*?)\*\*/g, "$1"); // Remove bold markers
 
     // Key phrases to highlight
     const keyPhrases = [
       "建议", "重点", "关键", "必须", "一定", "不要", "避免",
       "提高", "改善", "加强", "注意", "调整", "改变",
       "构图", "光线", "曝光", "对焦", "白平衡", "色彩",
-      "姿势", "表情", "背景", "构图", "光圈", "快门",
+      "姿势", "表情", "背景", "光圈", "快门",
       "ISO", "焦段", "角度", "机位", "时段",
     ];
 
-    // Helper to highlight key phrases in a line
-    const highlightLine = (line: string): React.ReactNode => {
-      // Check if line contains links
-      if (line.includes("|||LINK|||")) {
-        const parts = line.split(/(|||LINK|||.*?|||ENDLINK|||)/g);
-        return parts.map((part, j) => {
-          if (part.startsWith("|||LINK|||")) {
-            const match = part.match(/\|\|\|LINK\|\|\|(.+?)\|\|\|URL\|\|\|(.+?)\|\|\|ENDLINK\|\|\|/);
-            if (match) {
-              return (
-                <a key={j} href={match[2]} target="_blank" rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2 hover:text-primary/80">
-                  {match[1]}
-                </a>
-              );
-            }
-          }
-          // Check if this part has key phrases
-          let result: React.ReactNode = part;
-          for (const phrase of keyPhrases) {
-            if (part.includes(phrase) && part.length < 200) {
-              // Highlight key phrases
-              const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
-              result = part.split(regex).map((seg, k) => {
-                if (k % 2 === 1) {
-                  return <strong key={`${j}-${k}`} className="text-amber-500 font-semibold">{seg}</strong>;
-                }
-                return seg;
-              });
-              break;
-            }
-          }
-          return result;
-        });
-      }
-
-      // No links - check for key phrases
-      let result: React.ReactNode = line;
-      for (const phrase of keyPhrases) {
-        if (line.includes(phrase) && line.length < 200) {
-          const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
-          result = line.split(regex).map((seg, k) => {
-            if (k % 2 === 1) {
-              return <strong key={k} className="text-amber-500 font-semibold">{seg}</strong>;
-            }
-            return seg;
-          });
-          break;
+    // Helper to render a string with markdown links rendered as clickable badges
+    const renderWithLinks = (line: string, keyPrefix: string): React.ReactNode => {
+      const parts = line.split(/(\[[^\]]+\]\([^)]+\))/g);
+      return parts.map((part, i) => {
+        const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (m) {
+          return (
+            <a
+              key={`${keyPrefix}-l-${i}`}
+              href={m[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 rounded-full bg-primary/15 text-primary text-xs font-medium hover:bg-primary/25 transition-colors no-underline"
+            >
+              {m[1]}
+            </a>
+          );
         }
-      }
-      return result;
+        // Highlight key phrases
+        for (const phrase of keyPhrases) {
+          if (part.includes(phrase) && part.length < 200) {
+            const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
+            return part.split(regex).map((seg, k) =>
+              k % 2 === 1 ? (
+                <strong key={`${keyPrefix}-h-${i}-${k}`} className="text-amber-500 font-semibold">{seg}</strong>
+              ) : (
+                <span key={`${keyPrefix}-t-${i}-${k}`}>{seg}</span>
+              )
+            );
+          }
+        }
+        return <span key={`${keyPrefix}-p-${i}`}>{part}</span>;
+      });
     };
 
     // Split by lines and handle tables specially
@@ -874,7 +987,7 @@ const Critique = () => {
                 <div key={ri} className="grid gap-1 text-xs py-2 px-3 hover:bg-secondary/30"
                   style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
                   {row.map((cell, ci) => (
-                    <span key={ci} className={`${ci <= 1 ? "text-center" : "text-left"}`}>{highlightLine(cell)}</span>
+                    <span key={ci} className={`${ci <= 1 ? "text-center" : "text-left"}`}>{renderWithLinks(cell, `tbl-${ri}-${ci}`)}</span>
                   ))}
                 </div>
               );
@@ -904,14 +1017,14 @@ const Critique = () => {
         if (trimmed.includes("。") || trimmed.includes("！") || trimmed.includes("？")) {
           elements.push(
             <p key={elements.length} className="text-sm text-foreground leading-relaxed mb-2">
-              {highlightLine(trimmed)}
+              {renderWithLinks(trimmed, `p-${elements.length}`)}
             </p>
           );
         } else {
           // Continue building current paragraph
           elements.push(
             <p key={elements.length} className="text-sm text-foreground leading-relaxed mb-1">
-              {highlightLine(trimmed)}
+              {renderWithLinks(trimmed, `p-${elements.length}`)}
             </p>
           );
         }
@@ -969,34 +1082,23 @@ const Critique = () => {
     const assistantMsg = messages.find(m => m.role === "assistant" && !m.generatedImage);
     if (!assistantMsg) return "";
 
-    // Try to find a sharp/funny line from the actual critique content
-    // Look for keywords that indicate a punchy summary line
     const lines = assistantMsg.content.split("\n");
 
-    // Find lines that seem like impactful summary statements
-    for (const line of lines) {
+    const headerIndex = lines.findIndex((line) => {
       const trimmed = line.trim();
-      // Skip headers, tables, empty lines
-      if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
+      return trimmed.includes("一句话暴击") || trimmed.includes("Opening Roast");
+    });
 
-      // Look for lines with 暴击/致命/问题/建议 keywords that are short
-      if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 60) {
-        // Clean markdown
-        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
+    if (headerIndex !== -1) {
+      for (let i = headerIndex + 1; i < lines.length; i += 1) {
+        const trimmed = lines[i].trim();
+        if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("|") || trimmed.startsWith("---")) continue;
+        const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "").trim();
         if (cleaned.length > 5) return cleaned;
+        if (trimmed.includes("。") || trimmed.includes("!") || trimmed.includes("！")) break;
       }
     }
 
-    // Extract the first meaningful sentence from 快速诊断 or similar sections
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if ((trimmed.includes("诊断") || trimmed.includes("问题") || trimmed.includes("总结")) && trimmed.length < 80) {
-        const cleaned = trimmed.replace(/\*\*/g, "").replace(/^.*?[：:]\s*/, "");
-        if (cleaned.length > 10) return cleaned;
-      }
-    }
-
-    // Fallback: extract first short paragraph
     let paragraph = "";
     for (const line of lines) {
       const trimmed = line.trim();
@@ -1124,8 +1226,8 @@ const Critique = () => {
       const captureDiv = document.createElement("div");
       captureDiv.style.cssText = `
         position: relative;
-        width: 800px;
-        padding: 40px;
+        width: 640px;
+        padding: 120px 36px 60px;
         background: #0a0a0f;
         color: white;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1135,43 +1237,68 @@ const Critique = () => {
 
       // Logo with speech bubble in bottom right
       const logoBubble = document.createElement("div");
-      logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10;";
+      logoBubble.style.cssText = "position: absolute; bottom: 20px; right: 20px; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px;";
       logoBubble.innerHTML = `
-        <div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-          烂片一张~
+        <div style="background: #f59e0b; color: #000; height: 36px; padding: 0 16px; border-radius: 18px; font-size: 17px; font-weight: bold; line-height: 36px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; text-align: center;">
+          <span style="display: inline-block; line-height: 1; transform: translateY(-1px);">烂片一张~</span>
         </div>
-        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
+        <img src="https://raw.githubusercontent.com/Zoezhang1s/sharp-lens-ai/main/src/assets/logo.png" style="width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" />
       `;
       captureDiv.appendChild(logoBubble);
 
-      // Header with logo text
+      // Header with logo text — large for mobile readability
       const headerEl = document.createElement("div");
-      headerEl.style.cssText = "text-align: center; margin-bottom: 30px;";
+      headerEl.style.cssText = "text-align: center; margin-bottom: 40px;";
       headerEl.innerHTML = `
-        <div style="font-size: 14px; color: #f59e0b; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 5px;">你拍的啥</div>
-        <div style="font-size: 28px; font-weight: bold; color: white;">照片锐评报告</div>
+        <div style="font-size: 24px; color: #f59e0b; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 10px; font-weight: 600;">你拍的啥</div>
+        <div style="font-size: 48px; font-weight: bold; color: white; line-height: 1.2;">照片锐评报告</div>
       `;
       captureDiv.appendChild(headerEl);
 
+      // Convert any cross-origin image URL to a data URL so html2canvas can render it
+      const toDataUrl = async (url: string): Promise<string> => {
+        if (url.startsWith("data:")) return url;
+        try {
+          const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(url)}`;
+          const resp = await fetch(proxyUrl, {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          });
+          if (!resp.ok) throw new Error(`Proxy failed: ${resp.status}`);
+          const blob = await resp.blob();
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (err) {
+          console.warn("toDataUrl failed, using original url", err);
+          return url;
+        }
+      };
+
       // Image Comparison: Original vs AI Reference
       const imageSection = document.createElement("div");
-      imageSection.style.cssText = "margin-bottom: 30px;";
+      imageSection.style.cssText = "margin-bottom: 40px;";
       if (generatedImageMsg?.generatedImage) {
+        const aiImgData = await toDataUrl(generatedImageMsg.generatedImage);
         imageSection.innerHTML = `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
             <div>
-              <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">原图</div>
-              <img src="${imageData}" style="width: 100%; border-radius: 12px;" />
+              <div style="font-size: 22px; color: #ccc; margin-bottom: 12px; text-align: center; font-weight: 700;">原图</div>
+              <img src="${imageData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
             <div>
-              <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: center;">✨ AI优化参考</div>
-              <img src="${generatedImageMsg.generatedImage}" style="width: 100%; border-radius: 12px;" />
+              <div style="font-size: 22px; color: #f59e0b; margin-bottom: 12px; text-align: center; font-weight: 700;">✨ AI优化参考</div>
+              <img src="${aiImgData}" style="width: 100%; border-radius: 12px; object-fit: contain;" crossorigin="anonymous" />
             </div>
           </div>
         `;
       } else {
         imageSection.innerHTML = `
-          <div style="font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">原图</div>
+          <div style="font-size: 22px; color: #ccc; margin-bottom: 14px; text-align: center; font-weight: 700;">原图</div>
           <img src="${imageData}" style="width: 100%; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);" />
         `;
       }
@@ -1180,7 +1307,7 @@ const Critique = () => {
       // Score Card
       if (savedScore !== null) {
         const scoreSection = document.createElement("div");
-        scoreSection.style.cssText = "text-align: center; margin-bottom: 24px;";
+        scoreSection.style.cssText = "text-align: center; margin-bottom: 32px;";
         scoreSection.innerHTML = `
           <span style="font-size: 48px; font-weight: bold; color: #f59e0b;">${savedScore}</span>
           <span style="font-size: 20px; color: #888; margin-left: 8px;">/ 100</span>
@@ -1191,7 +1318,7 @@ const Critique = () => {
       // One-liner Critique
       if (savedOneLiner) {
         const oneLinerSection = document.createElement("div");
-        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 20px; margin-bottom: 30px;";
+        oneLinerSection.style.cssText = "background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 28px 26px; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px; text-align: center;";
         oneLinerSection.innerHTML = `
           <div style="font-size: 12px; color: #f59e0b; margin-bottom: 8px; font-weight: 600;">💥 一句话暴击</div>
           <div style="font-size: 15px; line-height: 1.8; color: white;">${savedOneLiner}</div>
@@ -1199,22 +1326,34 @@ const Critique = () => {
         captureDiv.appendChild(oneLinerSection);
       }
 
-      // Persona Critiques (Group Chat) - no avatars
+      // Persona Critiques (Group Chat)
       const groupSection = document.createElement("div");
-      groupSection.style.cssText = "margin-bottom: 30px;";
-      groupSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">群友锐评</div>`;
+      groupSection.style.cssText = "margin-bottom: 40px;";
+      groupSection.innerHTML = `<div style="font-size: 24px; color: #f59e0b; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px;">👥 群友锐评</div>`;
 
       personas.forEach(persona => {
         const personaCard = document.createElement("div");
-        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px;";
-        let critiqueHtml = `<div style="font-size: 14px; line-height: 1.6; color: #ccc;">${cleanForDownload(persona.critique)}</div>`;
-        if (persona.translation) {
-          critiqueHtml += `<div style="font-size: 12px; line-height: 1.6; color: #888; margin-top: 8px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">${persona.translation}</div>`;
+        personaCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 22px; margin-bottom: 16px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px;";
+        const langCode = (persona.lang || "zh").toLowerCase();
+        const isChinese = langCode === "zh";
+        const langColor = isChinese ? "#f59e0b" : langCode === "en" ? "#60a5fa" : langCode === "ja" ? "#f472b6" : langCode === "ko" ? "#34d399" : "#c084fc";
+
+        // Foreign personas: Chinese translation is the MAIN large text; original foreign text is small + dim
+        let critiqueHtml = "";
+        if (isChinese || !persona.translation) {
+          critiqueHtml = `<div style="font-size: 23px; line-height: 1.6; color: white; font-weight: 500; margin: 0;">${cleanForDownload(persona.critique)}</div>`;
+        } else {
+          critiqueHtml = `
+            <div style="font-size: 23px; line-height: 1.6; color: white; font-weight: 500; margin: 0;">${cleanForDownload(persona.translation)}</div>
+            <div style="font-size: 14px; line-height: 1.5; color: ${langColor}; opacity: 0.65; margin: 0; font-style: italic; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">${cleanForDownload(persona.critique)}</div>
+          `;
         }
+
         personaCard.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="font-weight: 600; font-size: 14px; color: white;">${persona.name}</span>
-            <span style="font-size: 11px; color: #888; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">${persona.style}</span>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0;">
+            <span style="font-weight: 700; font-size: 22px; color: white; line-height: 1.2; display: inline-flex; align-items: center;">${persona.name}</span>
+            <span style="font-size: 17px; color: #ccc; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 12px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${persona.style}</span>
+            <span style="font-size: 16px; color: ${langColor}; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 12px; font-weight: 600; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${langCode.toUpperCase()}</span>
           </div>
           ${critiqueHtml}
         `;
@@ -1222,20 +1361,90 @@ const Critique = () => {
       });
       captureDiv.appendChild(groupSection);
 
-      // Detailed Critique Sections
+      // Detailed Critique Sections — preserve highlights, skip "学习参考"/"Reference" sections
       if (assistantMsg) {
         const sections = parseCritiqueSections(assistantMsg.content);
-        if (sections.length > 0) {
-          const detailedSection = document.createElement("div");
-          detailedSection.style.cssText = "margin-top: 20px;";
-          detailedSection.innerHTML = `<div style="font-size: 12px; color: #888; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px;">详细锐评</div>`;
+        const filteredSections = sections.filter((s) => {
+          const t = s.title;
+          // Skip opening roast/score (already shown above) and learning/reference sections.
+          // Keep "一句话总结 / One-liner Summary" — it's the closing wrap-up.
+          return !(
+            t.includes("一句话暴击") ||
+            t.includes("Opening Roast") ||
+            t.includes("评分") ||
+            /Score\s*[:：]/i.test(t) ||
+            /^Score/i.test(t.trim()) ||
+            t.includes("学习参考") ||
+            t.includes("学习") ||
+            t.includes("参考") ||
+            t.toLowerCase().includes("learning") ||
+            t.toLowerCase().includes("reference") ||
+            t.toLowerCase().includes("resource")
+          );
+        });
 
-          sections.forEach(section => {
+        // Highlight key phrases — MUST mirror renderDetailedContent exactly so download matches UI
+        const keyPhrases = [
+          "建议", "重点", "关键", "必须", "一定", "不要", "避免",
+          "提高", "改善", "加强", "注意", "调整", "改变",
+          "构图", "光线", "曝光", "对焦", "白平衡", "色彩",
+          "姿势", "表情", "背景", "光圈", "快门",
+          "ISO", "焦段", "角度", "机位", "时段",
+        ];
+        const escapeHtml = (s: string) => s
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+        // Apply same first-match-wins rule the UI uses (one phrase per "part", part < 200 chars)
+        const highlightPart = (part: string): string => {
+          const escaped = escapeHtml(part);
+          if (part.length >= 200) return escaped;
+          for (const phrase of keyPhrases) {
+            if (part.includes(phrase)) {
+              const regex = new RegExp(`(${phrase}[^，。,.]*)`, "g");
+              return escaped.split(regex)
+                .map((seg, k) =>
+                  k % 2 === 1
+                    ? `<strong style="color:#f59e0b;font-weight:600;">${seg}</strong>`
+                    : seg
+                )
+                .join("");
+            }
+          }
+          return escaped;
+        };
+
+        const highlightHtml = (raw: string) => {
+          const cleaned = cleanForDownload(raw);
+          return cleaned
+            .split("\n")
+            .map((line) => {
+              if (!line.trim()) return "";
+              // Split out markdown links so they don't get highlighted, mirroring UI behavior
+              const parts = line.split(/(\[[^\]]+\]\([^)]+\))/g);
+              return parts.map((part) => {
+                const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+                if (m) {
+                  return `<span style="display:inline-block;background:rgba(245,158,11,0.18);color:#f59e0b;font-weight:600;padding:2px 10px;border-radius:999px;margin:0 2px;font-size:0.92em;">${escapeHtml(m[1])}</span>`;
+                }
+                return highlightPart(part);
+              }).join("");
+            })
+            .filter(Boolean)
+            .join("<br/>");
+        };
+
+        if (filteredSections.length > 0) {
+          const detailedSection = document.createElement("div");
+          detailedSection.style.cssText = "margin-top: 32px;";
+          detailedSection.innerHTML = `<div style="font-size: 24px; color: #f59e0b; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px;">📝 详细锐评</div>`;
+
+          filteredSections.forEach(section => {
             const sectionCard = document.createElement("div");
-            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px;";
+            sectionCard.style.cssText = "background: rgba(255,255,255,0.05); border-radius: 14px; padding: 26px; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 14px;";
             sectionCard.innerHTML = `
-              <div style="font-size: 14px; font-weight: 600; color: #f59e0b; margin-bottom: 12px;">${cleanForDownload(section.title)}</div>
-              <div style="font-size: 14px; line-height: 1.8; color: #ccc;">${cleanForDownload(section.content).replace(/\n/g, '<br/>')}</div>
+              <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin: 0; line-height: 1.3;">${escapeHtml(cleanForDownload(section.title))}</div>
+              <div style="font-size: 22px; line-height: 1.7; color: #f0f0f0; margin: 0;">${highlightHtml(section.content)}</div>
             `;
             detailedSection.appendChild(sectionCard);
           });
@@ -1245,26 +1454,50 @@ const Critique = () => {
 
       // Footer
       const footerEl = document.createElement("div");
-      footerEl.style.cssText = "text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 80px;";
+      footerEl.style.cssText = "text-align: center; margin-top: 56px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 90px;";
       footerEl.innerHTML = `
-        <div style="font-size: 12px; color: #555;">由 AI 提供 · 你拍的啥</div>
+        <div style="font-size: 18px; color: #888;">由 AI 提供 · 你拍的啥</div>
       `;
       captureDiv.appendChild(footerEl);
 
       document.body.appendChild(captureDiv);
 
+      // Wait for all images inside captureDiv to finish loading before snapshot
+      const allImgs = Array.from(captureDiv.querySelectorAll("img"));
+      await Promise.all(
+        allImgs.map((img) =>
+          img.complete && img.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise<void>((res) => {
+                img.addEventListener("load", () => res(), { once: true });
+                img.addEventListener("error", () => res(), { once: true });
+              })
+        )
+      );
+
+      const isMobile = typeof navigator !== "undefined" &&
+        /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
       const canvas = await html2canvas(captureDiv, {
         backgroundColor: "#0a0a0f",
-        scale: 2,
+        // Mobile devices: lower scale dramatically reduces file size + memory + download time
+        scale: isMobile ? 1.2 : 2,
         useCORS: true,
         allowTaint: true,
       });
 
       document.body.removeChild(captureDiv);
 
+      // Use JPEG on mobile for ~5-10x smaller files (much faster download/save)
+      const mime = isMobile ? "image/jpeg" : "image/png";
+      const ext = isMobile ? "jpg" : "png";
+      const dataUrl = isMobile
+        ? canvas.toDataURL(mime, 0.85)
+        : canvas.toDataURL(mime);
+
       const link = document.createElement("a");
-      link.download = `critique-${Date.now()}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = `critique-${Date.now()}.${ext}`;
+      link.href = dataUrl;
       link.click();
 
       toast.success(t("图片已下载", "Image downloaded"));
@@ -1349,11 +1582,19 @@ const Critique = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-muted-foreground text-center mb-2">{t("原图", "Original")}</p>
-                    <img
-                      src={imageData!}
-                      alt="Original"
-                      className="w-full rounded-lg object-contain"
-                    />
+                    <div
+                      className="relative group cursor-pointer"
+                      onClick={() => setZoomedImage(imageData!)}
+                    >
+                      <img
+                        src={imageData!}
+                        alt="Original"
+                        className="w-full rounded-lg object-contain"
+                      />
+                      <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <ZoomIn className="w-5 h-5 text-foreground" />
+                      </div>
+                    </div>
                   </div>
                   {messages.some(m => m.generatedImage) ? (
                     <div>
@@ -1361,11 +1602,22 @@ const Critique = () => {
                         <Sparkles className="w-3 h-3 text-primary" />
                         {t("AI优化", "AI Optimized")}
                       </p>
-                      <img
-                        src={messages.find(m => m.generatedImage)?.generatedImage}
-                        alt="AI Generated"
-                        className="w-full rounded-lg object-contain"
-                      />
+                      <div
+                        className="relative group cursor-pointer"
+                        onClick={() => {
+                          const url = messages.find(m => m.generatedImage)?.generatedImage;
+                          if (url) setZoomedImage(url);
+                        }}
+                      >
+                        <img
+                          src={messages.find(m => m.generatedImage)?.generatedImage}
+                          alt="AI Generated"
+                          className="w-full rounded-lg object-contain"
+                        />
+                        <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <ZoomIn className="w-5 h-5 text-foreground" />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg">
@@ -1400,24 +1652,64 @@ const Critique = () => {
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("群友锐评", "Group Critique")}
               </h3>
-              {personas.map((persona, i) => (
-                <Card key={i} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-sm text-foreground">{persona.name}</span>
-                      <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                        {persona.style}
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground leading-relaxed">{persona.critique}</p>
-                    {persona.translation && (
-                      <p className="text-xs text-muted-foreground italic leading-relaxed mt-2 border-t border-border/30 pt-2">
-                        {persona.translation}
-                      </p>
-                    )}
+              {personas.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-4 flex items-center gap-2">
+                    {isLoadingPersonas ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : null}
+                    <span className="text-xs text-muted-foreground">
+                      {personasError || t("群友正在赶来锐评中...", "Friends are gathering to roast...")}
+                    </span>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                personas.map((persona, i) => {
+                  const langCode = (persona.lang || "zh").toLowerCase();
+                  const isChinese = langCode === "zh";
+                  return (
+                    <Card key={i} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="font-bold text-sm text-foreground">{persona.name}</span>
+                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                            {persona.style}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${getLanguageBadgeClass(persona.lang)}`}>
+                            {langCode.toUpperCase()}
+                          </span>
+                        </div>
+                        {isChinese || !persona.translation ? (
+                          <p className="text-sm leading-relaxed text-foreground">
+                            {persona.critique}
+                          </p>
+                        ) : (
+                          <>
+                            {/* Chinese translation as PRIMARY (large, bright) */}
+                            <p className="text-sm leading-relaxed text-foreground font-medium">
+                              {persona.translation}
+                            </p>
+                            {/* Original foreign text as secondary (small, dim, italic) */}
+                            <p
+                              className={`text-[11px] leading-relaxed mt-2 italic opacity-70 border-t border-border/30 pt-2 ${
+                                langCode === "en"
+                                  ? "text-blue-400"
+                                  : langCode === "ja"
+                                  ? "text-pink-400"
+                                  : langCode === "ko"
+                                  ? "text-emerald-400"
+                                  : langCode === "fr"
+                                  ? "text-purple-400"
+                                  : "text-primary"
+                              }`}
+                            >
+                              {persona.critique}
+                            </p>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
 
             {/* 5. Collapsible Detailed Critique */}
@@ -1432,58 +1724,110 @@ const Critique = () => {
 
             {showDetailed && (
               <div className="space-y-4">
-                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "").map((section, i) => {
-                  // Check if this is 风格识别 section
-                  const isStyleSection = section.title.includes("风格") || section.title.includes("风格识别");
-                  // Check if this is 快速诊断 section
-                  const isQuickDiagSection = section.title.includes("快速诊断") || section.title.includes("诊断");
+                {parseCritiqueSections(messages.find(m => m.role === "assistant" && !m.generatedImage)?.content || "")
+                  .filter((section) => {
+                    // Hide only the opening roast and score sections — they're shown above.
+                    // Keep "一句话总结 / One-liner Summary" which is the closing wrap-up.
+                    const t = section.title;
+                    return !(
+                      t.includes("一句话暴击") ||
+                      t.includes("Opening Roast") ||
+                      t.includes("评分") ||
+                      /Score\s*[:：]/i.test(t) ||
+                      /^Score/i.test(t.trim())
+                    );
+                  })
+                  .map((section, i) => {
+                    // Check if this is 风格识别 section
+                    const isStyleSection = section.title.includes("风格") || section.title.includes("Style");
 
-                  return (
-                    <Card key={i}>
-                      <CardContent className="pt-4">
-                        {isStyleSection ? (
-                          <>
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-semibold text-primary">{section.title}</h4>
-                              {messages.find(m => m.detectedStyleId) && (
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="text-primary h-auto p-0"
-                                  onClick={() => {
-                                    const styleId = messages.find(m => m.detectedStyleId)?.detectedStyleId;
-                                    if (styleId) navigate(`/styles/${styleId}`, { state: { fromCritique: true, historyId } });
-                                  }}
-                                >
-                                  查看风格攻略 →
-                                </Button>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              {renderDetailedContent(section.content.trim())}
-                            </div>
-                          </>
-                        ) : isQuickDiagSection ? (
-                          <>
-                            <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
-                            <div className="space-y-1">
-                              {renderDetailedContent(section.content.trim())}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
-                            <div className="space-y-1">
-                              {renderDetailedContent(section.content.trim())}
-                            </div>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                    return (
+                      <Card key={i}>
+                        <CardContent className="pt-4">
+                          {isStyleSection ? (
+                            <>
+                              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <h4 className="text-sm font-semibold text-primary">{section.title}</h4>
+                                {messages.find(m => m.detectedStyleId) && (
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="text-primary h-auto p-0"
+                                    onClick={() => {
+                                      const styleId = messages.find(m => m.detectedStyleId)?.detectedStyleId;
+                                      if (styleId) navigate(`/styles/${styleId}`, { state: { fromCritique: true, historyId } });
+                                    }}
+                                  >
+                                    {t("查看风格攻略 →", "View style guide →")}
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                {renderDetailedContent(section.content.trim())}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="text-sm font-semibold text-primary mb-3">{section.title}</h4>
+                              <div className="space-y-1">
+                                {renderDetailedContent(section.content.trim())}
+                              </div>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
               </div>
             )}
+
+            {/* 6. Follow-up Q&A — show messages AFTER the first assistant critique */}
+            {(() => {
+              const firstAssistantIdx = messages.findIndex(
+                (m) => m.role === "assistant" && !m.generatedImage
+              );
+              if (firstAssistantIdx === -1) return null;
+              const followUps = messages.slice(firstAssistantIdx + 1).filter(
+                (m) => !m.generatedImage
+              );
+              if (followUps.length === 0 && !isLoading) return null;
+              return (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t("继续聊聊", "Keep Chatting")}
+                  </h3>
+                  {followUps.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[90%] rounded-2xl px-4 py-3 ${
+                          msg.role === "user"
+                            ? "bg-primary/10 border border-primary/20 text-foreground"
+                            : "glass-card text-foreground"
+                        }`}
+                      >
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {msg.content.split("\n").map((line, j) => renderMarkdownLine(line, j))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {isLoading && followUps.length > 0 && (
+                    <div className="flex justify-start">
+                      <div className="glass-card px-4 py-3 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        <span className="text-sm text-muted-foreground">
+                          {t("正在思考中...", "Thinking...")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              );
+            })()}
           </div>
         </div>
       ) : (
