@@ -350,18 +350,8 @@ const Critique = () => {
           const scoreMatch = content.match(/(?:评分|Score)[:\s]*(\d{1,3})\s*\/\s*100/i);
           if (scoreMatch) setSavedScore(parseInt(scoreMatch[1], 10));
 
-          const lines = content.split("\n");
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("#") || trimmed.startsWith("|") || !trimmed) continue;
-            if ((trimmed.includes("暴击") || trimmed.includes("致命") || trimmed.includes("问题") || trimmed.includes("建议")) && trimmed.length < 80) {
-              const cleaned = trimmed.replace(/\*\*/g, "").replace(/\*/g, "").replace(/^.*?[：:]\s*/, "");
-              if (cleaned.length > 5) {
-                setSavedOneLiner(cleaned);
-                break;
-              }
-            }
-          }
+          const roast = extractOneLinerRoast(content);
+          if (roast) setSavedOneLiner(roast);
         }
 
         // If has assistant message with content, critique is complete - just view it
