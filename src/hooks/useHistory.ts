@@ -8,6 +8,7 @@ export interface HistoryRecord {
   score: number;
   timestamp: number;
   messages: Array<{ role: string; content: string; imageData?: string; generatedImage?: string; detectedStyleId?: string }>;
+  titleLocked?: boolean; // once AI title is set, never overwrite
 }
 
 const STORAGE_KEY = "photo-critique-history";

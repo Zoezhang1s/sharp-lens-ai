@@ -177,7 +177,7 @@ const Critique = () => {
       const data = await resp.json();
       const aiTitle = (data?.title || "").toString().trim();
       if (aiTitle) {
-        updateRecord(hid, { title: aiTitle });
+        updateRecord(hid, { title: aiTitle, titleLocked: true });
         titleDoneForHistoryRef.current = hid;
       }
     } catch (e) {
@@ -302,6 +302,11 @@ const Critique = () => {
         setMessages(record.messages as Message[]);
         // Show simplified view when entering from history
         setFromHistory(true);
+
+        // If title was already AI-generated and locked, lock the ref so we never overwrite
+        if ((record as any).titleLocked) {
+          titleDoneForHistoryRef.current = hid;
+        }
 
         // Check what we have in this history record
         const hasAssistantText = record.messages.some(
@@ -471,9 +476,14 @@ const Critique = () => {
       const score = extractScoreFromText(assistantMsgs.map(m => m.content).join("\n"));
       const summary = lastAssistant.replace(/[#*>\n]/g, " ").trim().slice(0, 100);
 
-      // Don't overwrite the AI-generated title once it's set
+      // Don't overwrite the AI-generated title once it's locked (persists across reloads)
+      const existing = getRecord(historyId);
+      const isTitleLocked =
+        existing?.titleLocked === true ||
+        titleDoneForHistoryRef.current === historyId;
+
       const updates: any = { messages, score, summary };
-      if (titleDoneForHistoryRef.current !== historyId) {
+      if (!isTitleLocked) {
         updates.title = generateTitle(lastAssistant, lang);
       }
       updateRecord(historyId, updates);
@@ -483,7 +493,7 @@ const Critique = () => {
         !isLoading &&
         lastAssistant &&
         score > 0 &&
-        titleDoneForHistoryRef.current !== historyId &&
+        !isTitleLocked &&
         !titleFetchingRef.current
       ) {
         fetchAITitle(lastAssistant, imageData, historyId);
@@ -610,6 +620,10 @@ const Critique = () => {
     const imagePrompt = extractImagePrompt(critiqueText);
 
     setIsGeneratingImage(true);
+    // 15-minute hard timeout — if the function takes longer, surface a clear error
+    const controller = new AbortController();
+    const FIFTEEN_MIN = 15 * 60 * 1000;
+    const timeoutId = window.setTimeout(() => controller.abort(), FIFTEEN_MIN);
     try {
       const resp = await fetch(GENERATE_IMAGE_URL, {
         method: "POST",
@@ -622,13 +636,18 @@ const Critique = () => {
           imageData: refImage,
           language: lang === "zh" ? "zh" : "en",
         }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({ error: "Unknown error" }));
-        console.error("Image gen error:", data.error);
+        const data = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+        const serverErr = (data?.error || `HTTP ${resp.status}`).toString();
+        console.error("Image gen error:", serverErr);
         toast.error(
-          t("参考图生成失败，请重试", "Failed to generate the reference image. Please try again.")
+          t(
+            `参考图生成失败：${serverErr}`,
+            `Failed to generate reference image: ${serverErr}`
+          )
         );
         return;
       }
@@ -644,10 +663,29 @@ const Critique = () => {
           generatedImage: data.imageUrl,
         };
         setMessages((prev) => [...prev, imgMsg]);
+      } else {
+        toast.error(
+          t("参考图生成失败：服务器未返回图片", "Failed to generate reference image: server returned no image")
+        );
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Image gen error:", e);
+      const isAbort = e?.name === "AbortError";
+      if (isAbort) {
+        toast.error(
+          t(
+            "参考图生成超时（超过 15 分钟）。可能原因：手机网络不稳定 / AI 服务排队过长，请切换到 WiFi 后重试。",
+            "Reference image generation timed out (over 15 min). Likely cause: unstable mobile network or AI service queue. Switch to Wi-Fi and retry."
+          )
+        );
+      } else {
+        const msg = e?.message || (lang === "zh" ? "网络异常" : "Network error");
+        toast.error(
+          t(`参考图生成失败：${msg}`, `Failed to generate reference image: ${msg}`)
+        );
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsGeneratingImage(false);
     }
   };
@@ -1412,18 +1450,29 @@ const Critique = () => {
         )
       );
 
+      const isMobile = typeof navigator !== "undefined" &&
+        /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
       const canvas = await html2canvas(captureDiv, {
         backgroundColor: "#0a0a0f",
-        scale: 2,
+        // Mobile devices: lower scale dramatically reduces file size + memory + download time
+        scale: isMobile ? 1.2 : 2,
         useCORS: true,
         allowTaint: true,
       });
 
       document.body.removeChild(captureDiv);
 
+      // Use JPEG on mobile for ~5-10x smaller files (much faster download/save)
+      const mime = isMobile ? "image/jpeg" : "image/png";
+      const ext = isMobile ? "jpg" : "png";
+      const dataUrl = isMobile
+        ? canvas.toDataURL(mime, 0.85)
+        : canvas.toDataURL(mime);
+
       const link = document.createElement("a");
-      link.download = `critique-${Date.now()}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = `critique-${Date.now()}.${ext}`;
+      link.href = dataUrl;
       link.click();
 
       toast.success(t("图片已下载", "Image downloaded"));

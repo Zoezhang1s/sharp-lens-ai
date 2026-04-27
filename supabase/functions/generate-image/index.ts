@@ -331,15 +331,20 @@ If composition was bad → use a totally different excellent composition; flat/h
     if (!imageResp.ok) {
       const errText = await imageResp.text();
       console.error("Image editing error:", imageResp.status, errText);
-      throw new Error(`Image generation failed [${imageResp.status}]`);
+      // Surface human-readable hint for common upstream codes
+      let hint = errText.slice(0, 240);
+      if (imageResp.status === 429) hint = "AI 服务限流（429），请稍后重试";
+      else if (imageResp.status === 402) hint = "AI 额度不足（402），请联系管理员充值";
+      else if (imageResp.status === 504 || imageResp.status === 524) hint = "AI 网关超时，请重试";
+      throw new Error(`图像生成上游错误 [${imageResp.status}] ${hint}`);
     }
 
     const imageDataResult = await imageResp.json();
     const imageUrl = imageDataResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!imageUrl) {
-      console.error("No image URL in response:", JSON.stringify(imageDataResult));
-      throw new Error("No image URL returned");
+      console.error("No image URL in response:", JSON.stringify(imageDataResult).slice(0, 500));
+      throw new Error("AI 模型未返回图片，可能被安全策略拦截，请换张照片重试");
     }
 
     return new Response(
