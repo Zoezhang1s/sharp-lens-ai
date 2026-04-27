@@ -303,6 +303,11 @@ const Critique = () => {
         // Show simplified view when entering from history
         setFromHistory(true);
 
+        // If title was already AI-generated and locked, lock the ref so we never overwrite
+        if ((record as any).titleLocked) {
+          titleDoneForHistoryRef.current = hid;
+        }
+
         // Check what we have in this history record
         const hasAssistantText = record.messages.some(
           (m: any) => m.role === "assistant" && !m.generatedImage && (m.content || "").trim().length > 0
