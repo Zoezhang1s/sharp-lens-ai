@@ -99,6 +99,8 @@ const Critique = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addRecord, updateRecord, getRecord } = useHistory();
   const [personas, setPersonas] = useState<Persona[]>([]);
+  const [isLoadingPersonas, setIsLoadingPersonas] = useState(false);
+  const [personasError, setPersonasError] = useState<string | null>(null);
   const [savedOneLiner, setSavedOneLiner] = useState<string>("");
   const [savedScore, setSavedScore] = useState<number | null>(null);
 
