@@ -1,6 +1,6 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, Clock, Globe } from "lucide-react";
+import { Home, BookOpen, Clock } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
 const AppHeader = () => {
