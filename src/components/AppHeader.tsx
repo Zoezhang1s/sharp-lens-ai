@@ -4,7 +4,7 @@ import { Home, BookOpen, Clock } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
 const AppHeader = () => {
-  const { lang, setLang, t } = useLanguage();
+  const { t } = useLanguage();
   const location = useLocation();
 
   const navItems = [
