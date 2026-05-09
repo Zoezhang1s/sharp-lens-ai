@@ -39,13 +39,6 @@ const AppHeader = () => {
               </Link>
             );
           })}
-          <button
-            onClick={() => setLang(lang === "zh" ? "en" : "zh")}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all ml-1"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">{lang === "zh" ? "EN" : "中"}</span>
-          </button>
         </nav>
       </div>
     </header>
